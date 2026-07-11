@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 26 · The FPGA Board, Labelled Completely — FPGA & Verilog Handbook</title>
+<link rel="stylesheet" href="shared/styles.css">
+<style>
+  .board-svg-wrap{ background:#0d1420; border:1px solid var(--line); border-radius:12px; padding:10px; }
+  .comp-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px; margin:18px 0; }
+  .comp-card{ background:var(--sheet-raised); border:1px solid var(--line); border-radius:10px; padding:16px 18px; }
+  .comp-card h4{ margin:0 0 6px; font-size:14px; color:var(--sig-cyan); }
+  .comp-card p{ margin:0; font-size:13px; color:var(--ink-dim); }
+  .comp-num{ display:inline-block; width:20px; height:20px; border-radius:50%; background:var(--sig-blue); color:#04101d; text-align:center; font-size:11px; font-weight:700; line-height:20px; margin-right:6px; font-family:var(--font-mono); }
+</style>
+</head>
+<body>
+<div class="board-grid"></div>
+
+<div class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Open chapter menu"><span></span><span></span><span></span></button>
+  <div class="topbar-title"><b>Chapter 26</b> · The FPGA Board, Labelled Completely</div>
+  <div class="topbar-right"><span id="reading-time" class="dim" style="font-family:var(--font-mono);font-size:12px;"></span></div>
+</div>
+<div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="logo">◈ FPGA & VERILOG HANDBOOK</div>
+    <div class="tag">From absolute zero to a working FPGA board</div>
+  </div>
+  <div class="sidebar-search"><input type="text" id="sidebar-search-input" placeholder="Search chapters..."></div>
+  <div class="sidebar-group" id="sidebar-list"></div>
+</nav>
+
+<div class="page-wrap">
+<article class="sheet">
+
+  <div class="eyebrow">Part 6 · Vivado & Hardware — Chapter 26 (Final chapter of the handbook)</div>
+  <h1 class="h-title">The FPGA Board, Labelled Completely</h1>
+  <p class="h-sub">This chapter labels every component on a real, widely-used educational FPGA board — the Real Digital Boolean board (Spartan-7 based) — so that everything abstract in Parts 1–2 finally has a physical home you can point to.</p>
+  <div class="meta-row"><span>📖 Beginner Level</span><span>🕐 <span id="reading-time-2">—</span></span><span>🧩 9 sections</span></div>
+
+  <section class="chapter-section" id="the-fpga-chip" data-nav="1. The FPGA chip itself">
+    <h2>1. The FPGA Chip Itself</h2>
+    <p>At the center of the board sits an AMD/Xilinx <b>Spartan-7 XC7S50</b> FPGA — the exact kind of chip Chapter 7 described in the abstract, now sitting in front of you as a real package. It contains over 8,000 logic slices, each built from four 6-input LUTs and 8 flip-flops (Chapter 7's CLBs, in the flesh) — roughly 52,000 logic cells in total — plus 120 dedicated DSP blocks (each with dual 24-bit adders, a multiplier, and a 48-bit accumulator, Chapter 7's "hard blocks") and five clock management tiles for generating whatever clock signals your design needs from the board's single oscillator.</p>
+  </section>
+
+  <section class="chapter-section" id="switches-buttons" data-nav="2. Switches & Buttons">
+    <h2>2. Switches and Pushbuttons — Your Manual Inputs</h2>
+    <div class="comp-grid">
+      <div class="comp-card"><h4><span class="comp-num">A</span>16 Slide Switches</h4><p>Single-pole double-throw (SPDT) switches, each outputting a constant, stable 0 or 1 depending on its physical position — perfect for the A/B inputs in nearly every Part 5 circuit.</p></div>
+      <div class="comp-card"><h4><span class="comp-num">B</span>4 Pushbuttons</h4><p>Momentary switches: normally output 0, and output 1 only while actively held down — ideal for a manual clock-step, reset, or FSM trigger input.</p></div>
+    </div>
+    <p class="dim">Every switch and button routes through a series resistor before reaching the FPGA, protecting the chip if a pin is accidentally configured as an output while a switch is also driving it.</p>
+  </section>
+
+  <section class="chapter-section" id="leds" data-nav="3. LEDs">
+    <h2>3. LEDs — Your Simplest Outputs</h2>
+    <div class="comp-grid">
+      <div class="comp-card"><h4><span class="comp-num">C</span>16 Single-Color LEDs</h4><p>Active-HIGH — driving the pin to logic 1 lights the LED, through a 330Ω resistor drawing about 1mA. This is exactly the output Chapter 22's LED blinker project drives.</p></div>
+      <div class="comp-card"><h4><span class="comp-num">D</span>2 RGB (Tri-Color) LEDs</h4><p>Each needs slightly more current (~5mA) and is driven through a transistor rather than a direct resistor. Combined with Chapter 23's PWM technique, these can display a huge range of blended colors.</p></div>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="seven-seg-display" data-nav="4. Seven-Segment Displays">
+    <h2>4. Seven-Segment Displays</h2>
+    <p>The board includes <b>8 seven-segment digits total</b> (arranged as two separate 4-digit banks) — exactly the display type built and driven in Chapter 19 and Chapter 23. Real boards multiplex multiple digits (rapidly switching which single digit is active, faster than the eye can see — the same persistence-of-vision idea from Chapter 22's PWM) rather than wiring all 8 digits' segments fully independently, which would need far too many I/O pins.</p>
+  </section>
+
+  <section class="chapter-section" id="clock-oscillator" data-nav="5. The Clock Oscillator">
+    <h2>5. The Clock Oscillator — Your Board's Heartbeat</h2>
+    <p>A dedicated <b>100 MHz oscillator</b> runs continuously the moment the board has power, feeding a special clock-capable FPGA input pin. From there, the signal can reach any flip-flop on the chip via dedicated high-speed clock routing, or first pass through one of the clock management tiles to generate a different frequency your design specifically needs. This is the real, physical source of every <code>clk</code> input in every module you've written since Chapter 10 — and exactly why Chapter 22's LED blinker needed a clock divider: 100 million ticks per second is nowhere close to human-visible.</p>
+  </section>
+
+  <section class="chapter-section" id="usb-power-programming" data-nav="6. USB, Power & Programming">
+    <h2>6. USB, Power, and Programming</h2>
+    <p>A single USB connector both powers the board and carries the programming/JTAG connection Vivado uses (Chapter 24) to load your bitstream. A jumper (commonly labeled <b>J13</b>) chooses the FPGA's boot behavior: set to <b>JTAG</b>, the FPGA stays idle until Vivado actively configures it; set to <b>PROM</b>, the FPGA automatically loads a previously-saved configuration from onboard flash memory every time the board powers on — letting a finished project run standalone, without a computer attached at all.</p>
+  </section>
+
+  <section class="chapter-section" id="pmod-expansion" data-nav="7. Pmod Expansion Headers">
+    <h2>7. Pmod Expansion Connectors</h2>
+    <p>Two 30-pin expansion headers provide access to roughly 44 additional FPGA I/O pins beyond the built-in switches/LEDs/display — enough to host up to four standard <b>Pmod</b> modules (small standardized peripheral boards for things like extra sensors, motor drivers, or communication interfaces) or a custom add-on board of your own design.</p>
+  </section>
+
+  <section class="chapter-section" id="servo-headers" data-nav="8. Servo Headers">
+    <h2>8. Servo Motor Headers — Straight Into Robotics</h2>
+    <p>Four dedicated 3-pin headers (<b>SIG / power / ground</b>) connect directly to standard hobby servo motors — the exact kind used in robotics projects. Each servo is controlled by a single PWM signal (Chapter 23's PWM project, applied directly to a real motor instead of an LED's brightness), following a well-defined timing protocol on the SIG line. A separate power-select jumper lets you choose whether servos draw power from the same USB connection powering the board, or from a separate external supply — important, since servos under load can draw far more current than USB alone comfortably provides.</p>
+  </section>
+
+  <section class="chapter-section" id="other-peripherals" data-nav="9. HDMI, Bluetooth & Audio">
+    <h2>9. HDMI, Bluetooth, and Audio</h2>
+    <p>Rounding out the board: an <b>HDMI output</b> capable of driving a real display (up to 1080p) directly from FPGA logic; an optional onboard <b>Bluetooth Low Energy radio</b> for wireless projects; and audio output circuitry for sound-generating designs. These sit well beyond this handbook's scope, but they exist for exactly the reason Chapter 6 described — the same reconfigurable fabric that built a half adder can, with enough additional design work, drive a video signal or a Bluetooth link.</p>
+  </section>
+
+  <section class="chapter-section" id="board-diagram" data-nav="The whole board, together">
+    <h2>Putting It All Together</h2>
+    <figure class="diagram">
+      <div class="board-svg-wrap">
+      <svg viewBox="0 0 640 380" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <rect x="10" y="10" width="620" height="360" rx="10" fill="#0f151e" stroke="#2a3a4d" stroke-width="2"/>
+        <!-- FPGA chip center -->
+        <rect x="250" y="150" width="140" height="90" rx="6" fill="#141b26" stroke="#3b82f6" stroke-width="2.5"/>
+        <text x="270" y="200" fill="#dbe6f0" font-family="ui-monospace,monospace" font-size="13">XC7S50</text>
+        <text x="262" y="216" fill="#93a4b8" font-family="ui-monospace,monospace" font-size="10.5">Spartan-7 FPGA</text>
+
+        <!-- switches -->
+        <g font-family="ui-monospace,monospace" font-size="10" fill="#93a4b8">
+          <rect x="30" y="300" width="180" height="30" rx="4" fill="#16202c" stroke="#3b82f6"/><text x="40" y="319">A · 16 slide switches</text>
+          <rect x="230" y="300" width="180" height="30" rx="4" fill="#16202c" stroke="#3b82f6"/><text x="240" y="319">B · 4 pushbuttons</text>
+          <rect x="430" y="300" width="180" height="30" rx="4" fill="#16202c" stroke="#3b82f6"/><text x="440" y="319">C/D · 16 LEDs + 2 RGB</text>
+
+          <rect x="30" y="20" width="180" height="30" rx="4" fill="#16202c" stroke="#22d3ee"/><text x="40" y="39">4 · 8-digit 7-segment display</text>
+          <rect x="230" y="20" width="180" height="30" rx="4" fill="#16202c" stroke="#22d3ee"/><text x="240" y="39">5 · 100MHz oscillator</text>
+          <rect x="430" y="20" width="180" height="30" rx="4" fill="#16202c" stroke="#22d3ee"/><text x="440" y="39">6 · USB (power+program)</text>
+
+          <rect x="10" y="150" width="90" height="90" rx="6" fill="#16202c" stroke="#f5a524"/><text x="18" y="190" font-size="10.5">7 · Pmod</text><text x="18" y="204" font-size="10.5">header</text>
+          <rect x="540" y="150" width="90" height="90" rx="6" fill="#16202c" stroke="#f5a524"/><text x="548" y="190" font-size="10.5">7 · Pmod</text><text x="548" y="204" font-size="10.5">header</text>
+
+          <rect x="230" y="260" width="180" height="26" rx="4" fill="#16202c" stroke="#34d399"/><text x="255" y="277">8 · 4 servo headers</text>
+        </g>
+      </svg>
+      </div>
+      <figcaption>A simplified floorplan of the real board — compare directly to Chapter 7's abstract FPGA floorplan diagram. The FPGA chip is the same reconfigurable fabric; everything around it is the peripheral hardware this chapter just labeled.</figcaption>
+    </figure>
+  </section>
+
+  <section class="chapter-section" id="summary" data-nav="Summary & key points">
+    <h2>Summary</h2>
+    <p>The Real Digital Boolean board wraps a Spartan-7 FPGA with everything needed to run real digital designs standalone: 16 slide switches and 4 pushbuttons for input, 16 single-color LEDs and 2 RGB LEDs plus an 8-digit seven-segment display for output, a 100MHz oscillator as the clock source, USB for both power and programming, Pmod headers for expansion, and dedicated servo headers for robotics. Every peripheral on this board maps directly onto a concept from this handbook — switches and buttons are literal Chapter 4 inputs, LEDs are Chapter 4 outputs, the oscillator is Chapter 5's clock made physical, and the FPGA chip itself is Chapter 7's LUT/CLB/routing architecture, now something you can actually hold.</p>
+    <h3>Key Points</h3>
+    <ul>
+      <li>The FPGA chip (XC7S50) contains ~8,000 slices, 120 DSP blocks, and 5 clock management tiles.</li>
+      <li>16 switches + 4 buttons = inputs; 16 LEDs + 2 RGB LEDs + 8-digit 7-seg = outputs.</li>
+      <li>A 100MHz oscillator provides the clock; J13 selects JTAG (idle, program via Vivado) vs PROM (auto-boot from flash).</li>
+      <li>Pmod headers add ~44 extra I/O pins; 4 servo headers connect directly to hobby servo motors via PWM.</li>
+    </ul>
+    <div class="mem-trick"><b>Memory Trick:</b> "Switches and buttons IN. LEDs and seven-segments OUT. Oscillator is the heartbeat. USB feeds and programs it. Pmod and servo headers let it reach the outside world."</div>
+  </section>
+
+  <section class="chapter-section" id="practice-questions" data-nav="Practice questions">
+    <h2>Practice Questions</h2>
+    <ol>
+      <li>Why do the board's LEDs need current-limiting resistors, while the RGB LEDs use transistors instead?</li>
+      <li>What is the practical difference between setting the boot jumper to JTAG versus PROM?</li>
+      <li>Why can't all 8 seven-segment digits realistically have fully independent, simultaneous segment control?</li>
+      <li>Why might a servo motor project need external power instead of relying on USB alone?</li>
+    </ol>
+  </section>
+
+  <section class="chapter-section" id="interview-questions" data-nav="Interview questions">
+    <h2>Interview Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>Why does an educational FPGA board include a fixed on-board oscillator rather than expecting the user to supply a clock?</summary><div class="answer">Nearly every digital design needs a stable, known clock source (Chapter 5), and requiring external clock hardware would be an unnecessary barrier for learners — a fixed onboard oscillator guarantees every project has immediate access to a reliable timing reference.</div></details></li>
+      <li><details class="qa"><summary>What is the purpose of the PROM boot mode on a board like this?</summary><div class="answer">It lets a finished, verified design run automatically every time the board powers on, without needing a computer or Vivado connected — essential for any standalone or embedded final project.</div></details></li>
+      <li><details class="qa"><summary>Why do servo motor headers include a separate power jumper instead of always drawing from USB?</summary><div class="answer">Servo motors, especially under mechanical load, can draw far more current than a USB connection can reliably supply, so a separate external power option prevents brownouts that could corrupt the FPGA's configuration or destabilize the whole board.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="viva-questions" data-nav="Viva questions">
+    <h2>Viva Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>What FPGA chip is at the heart of the Boolean board?</summary><div class="answer">An AMD/Xilinx Spartan-7 XC7S50.</div></details></li>
+      <li><details class="qa"><summary>How many slide switches and pushbuttons does the board provide?</summary><div class="answer">16 slide switches and 4 pushbuttons.</div></details></li>
+      <li><details class="qa"><summary>What frequency is the board's built-in oscillator?</summary><div class="answer">100 MHz.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="assignments" data-nav="Assignments & closing">
+    <h2>Final Assignments</h2>
+    <p>1. Draw the board's layout from memory, labeling every component covered in this chapter. 2. Take Chapter 22's traffic_light.v, write a matching XDC constraining it to real switches/LEDs on this board, and program it onto real hardware. 3. Take Chapter 23's calculator.v, wire its inputs to real switches and its seven-segment output to a real display bank, and demonstrate it live.</p>
+
+    <div class="callout good" style="margin-top:28px;">
+      <div class="callout-title">You've reached the end of the handbook</div>
+      You started at Chapter 1 not knowing what a voltage was. You now understand digital logic from first principles, can read and write real Verilog across every major modeling style, can design and verify combinational and sequential circuits, can build working Finite State Machines, and know the complete real-world path from a text file to a physical, programmed FPGA board. Everything from here is practice: build more projects, break things on purpose to see what error messages appear, and keep a testbench next to every design you ever write.
+    </div>
+  </section>
+
+  <div class="footer-nav">
+    <a href="chapter-25.html"><span class="lbl">← BACK</span>Debugging, Reports & Common Errors</a>
+    <a href="index.html" class="next"><span class="lbl">HANDBOOK COMPLETE</span>Back to Home</a>
+  </div>
+
+</article>
+</div>
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">↑</button>
+
+<script>window.CURRENT_CHAPTER_ID = "ch-26";</script>
+<script src="shared/nav.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => { const t = document.getElementById("reading-time"); const t2 = document.getElementById("reading-time-2"); if(t && t2){ const obs = new MutationObserver(()=>{ t2.textContent = t.textContent; }); obs.observe(t, {childList:true}); } });</script>
+</body>
+</html>
