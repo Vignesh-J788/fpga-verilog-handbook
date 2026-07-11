@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 7 · FPGA Internal Architecture — FPGA & Verilog Handbook</title>
+<link rel="stylesheet" href="shared/styles.css">
+<style>
+  .blockbox{ fill:#141b26; stroke:#3b82f6; stroke-width:2; }
+  .blocklbl{ fill:#dbe6f0; font-family:ui-monospace,monospace; font-size:13px; }
+  .pinlbl{ fill:#93a4b8; font-family:ui-monospace,monospace; font-size:11.5px; }
+  .wire{ stroke:#93a4b8; stroke-width:2; fill:none; }
+</style>
+</head>
+<body>
+<div class="board-grid"></div>
+
+<div class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Open chapter menu"><span></span><span></span><span></span></button>
+  <div class="topbar-title"><b>Chapter 07</b> · FPGA Internal Architecture</div>
+  <div class="topbar-right"><span id="reading-time" class="dim" style="font-family:var(--font-mono);font-size:12px;"></span></div>
+</div>
+<div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="logo">◈ FPGA & VERILOG HANDBOOK</div>
+    <div class="tag">From absolute zero to a working FPGA board</div>
+  </div>
+  <div class="sidebar-search"><input type="text" id="sidebar-search-input" placeholder="Search chapters..."></div>
+  <div class="sidebar-group" id="sidebar-list"></div>
+</nav>
+
+<div class="page-wrap">
+<article class="sheet">
+
+  <div class="eyebrow">Part 2 · FPGA World — Chapter 07</div>
+  <h1 class="h-title">FPGA Internal Architecture (LUT, CLB, Routing)</h1>
+  <p class="h-sub">Time to open the black box. This chapter shows exactly what's physically sitting inside an FPGA — the LUTs that become your gates, the CLBs that bundle them with memory, and the programmable routing web that wires it all together.</p>
+  <div class="meta-row"><span>📖 Intermediate Level</span><span>🕐 <span id="reading-time-2">—</span></span><span>🧩 8 sections</span></div>
+
+  <section class="chapter-section" id="lut-basics" data-nav="The LUT (Look-Up Table)">
+    <h2>The LUT — The Real Secret Behind "Reconfigurable"</h2>
+    <p>Here's the single most important idea in this entire chapter: <b>an FPGA doesn't actually contain reconfigurable AND/OR/XOR gates at all.</b> Instead, it contains thousands of tiny <b>memory tables</b> called <b>LUTs (Look-Up Tables)</b>, and each LUT can be configured to <i>behave</i> like any logic function you want, of a few inputs.</p>
+    <div class="analogy-box">
+      <div class="tag">Analogy · A Phonebook, Not a Calculator</div>
+      <p style="margin-bottom:0">Imagine, instead of a person actually calculating "2+2" every time, they just flip open a phonebook to the page labeled "2,2" and read out whatever answer is written there. If someone had written "4" on that page, it behaves like an adder. If someone had written "0" on that page instead, it would behave completely differently — same phonebook-flipping <i>mechanism</i>, totally different <i>behavior</i>, just by changing what's written on the pages. A LUT is exactly this: a tiny table of pre-written answers, and your inputs simply select which answer to read out.</p>
+    </div>
+
+    <p>Concretely: a LUT with <b>k</b> inputs contains <b>2ᵏ</b> memory cells — one answer stored for every possible input combination. The inputs act as an <i>address</i> that picks out one cell to read.</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 400 220" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <text x="4" y="34" class="pinlbl">A</text><line x1="18" y1="30" x2="60" y2="30" class="wire"/>
+        <text x="4" y="64" class="pinlbl">B</text><line x1="18" y1="60" x2="60" y2="60" class="wire"/>
+        <rect x="60" y="15" width="140" height="180" rx="6" fill="#141b26" stroke="#3b82f6" stroke-width="2"/>
+        <text x="72" y="10" class="pinlbl">2-input LUT memory (configured as AND)</text>
+        <g font-family="ui-monospace,monospace" font-size="12">
+          <rect x="72" y="30" width="116" height="30" fill="#0b1119"/><text x="80" y="50" fill="#93a4b8">addr 00 →</text><text x="165" y="50" fill="#f4574f">0</text>
+          <rect x="72" y="65" width="116" height="30" fill="#0b1119"/><text x="80" y="85" fill="#93a4b8">addr 01 →</text><text x="165" y="85" fill="#f4574f">0</text>
+          <rect x="72" y="100" width="116" height="30" fill="#0b1119"/><text x="80" y="120" fill="#93a4b8">addr 10 →</text><text x="165" y="120" fill="#f4574f">0</text>
+          <rect x="72" y="135" width="116" height="30" fill="#0b1119" stroke="#34d399" stroke-width="1.5"/><text x="80" y="155" fill="#93a4b8">addr 11 →</text><text x="165" y="155" fill="#34d399">1</text>
+        </g>
+        <line x1="200" y1="150" x2="260" y2="150" class="wire"/>
+        <line x1="260" y1="150" x2="260" y2="105" class="wire"/>
+        <line x1="260" y1="105" x2="340" y2="105" class="wire"/>
+        <text x="348" y="110" class="pinlbl" fill="#3b82f6">Y</text>
+      </svg>
+      <figcaption>A 2-input LUT is just 4 memory cells (2² = 4). Here, only address "11" (A=1,B=1) has been written with a 1 — so this LUT now behaves exactly like an AND gate.</figcaption>
+    </figure>
+
+    <div class="callout good">
+      <div class="callout-title">The powerful consequence</div>
+      Rewrite those same 4 memory cells differently, and that identical piece of hardware instantly becomes an OR gate, an XOR gate, or literally <i>any</i> possible function of 2 inputs — <b>without changing a single wire</b>. This is the actual mechanism behind "reconfigurable." It's not that the gates rewire themselves — it's that the answer-table each one consults gets rewritten. Modern FPGAs commonly use 4-input or 6-input LUTs (16 or 64 memory cells each), letting a single LUT implement fairly complex functions on its own.
+    </div>
+  </section>
+
+  <section class="chapter-section" id="clb-slice" data-nav="CLB / Slice (LUT + Flip-Flop)">
+    <h2>The CLB — Bundling a LUT With Memory</h2>
+    <p>A single LUT alone can only do combinational logic (Chapter 4) — it has no memory. So FPGA vendors bundle each LUT together with a small set of extra pieces into a unit usually called a <b>CLB (Configurable Logic Block)</b> or <b>slice</b>: the LUT itself, a flip-flop (Chapter 5) right after it, and a small multiplexer that lets you choose whether the final output comes straight from the LUT (pure combinational) or from the flip-flop (registered/clocked) instead.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 460 160" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <text x="0" y="44" class="pinlbl">Inputs</text><line x1="45" y1="40" x2="80" y2="40" class="wire"/>
+        <rect x="80" y="15" width="80" height="50" rx="6" class="blockbox"/><text x="98" y="45" class="blocklbl">LUT</text>
+        <line x1="160" y1="40" x2="240" y2="40" class="wire"/>
+        <line x1="200" y1="40" x2="200" y2="105" class="wire"/>
+        <rect x="240" y="15" width="80" height="50" rx="6" fill="#141b26" stroke="#34d399" stroke-width="2"/><text x="252" y="45" class="blocklbl">D Flip-Flop</text>
+        <text x="252" y="12" class="pinlbl" fill="#34d399">CLK ↴</text>
+        <line x1="320" y1="40" x2="360" y2="40" class="wire"/>
+        <line x1="360" y1="40" x2="360" y2="95" class="wire"/>
+        <!-- mux -->
+        <path d="M370,80 L370,130 L410,120 L410,90 Z" fill="#141b26" stroke="#f5a524" stroke-width="2.5"/>
+        <line x1="360" y1="40" x2="370" y2="90" class="wire"/>
+        <line x1="200" y1="105" x2="370" y2="120" class="wire"/>
+        <line x1="410" y1="105" x2="450" y2="105" class="wire"/>
+        <text x="330" y="145" class="pinlbl" fill="#f5a524">select: combinational or registered</text>
+        <text x="0" y="110" class="pinlbl" fill="#93a4b8">(bypass path)</text>
+      </svg>
+      <figcaption>A basic CLB / slice: LUT → optional D flip-flop → output-select mux. The mux lets each slice act as either pure combinational logic or a clocked storage element, chosen entirely by configuration.</figcaption>
+    </figure>
+    <p>Real FPGA CLBs are usually more elaborate — bundling <b>several</b> LUTs and flip-flops per slice, plus small dedicated carry-chain hardware to make adders (Chapter 4) run faster than if they were built from plain LUTs alone. But the core idea — LUT for logic, flip-flop for memory, mux to choose — stays true across every FPGA vendor and generation.</p>
+  </section>
+
+  <section class="chapter-section" id="routing" data-nav="Programmable routing">
+    <h2>Programmable Routing — Wiring It All Together</h2>
+    <p>Thousands of CLBs are useless in isolation — they need to be connected to each other in whatever pattern your specific design requires. That job belongs to the FPGA's <b>programmable interconnect (routing) fabric</b>: a dense mesh of wire segments running horizontally and vertically across the chip, with <b>programmable switch points</b> at every intersection that can be configured to connect (or not connect) any two crossing wires.</p>
+    <div class="analogy-box">
+      <div class="tag">Analogy · A City Grid With Smart Traffic Lights</div>
+      <p style="margin-bottom:0">Picture a city laid out in a perfect grid of streets, with a traffic control box at every intersection that can either let cars pass straight through, turn, or block the path entirely — reconfigured on demand. Your design's connections are like delivery routes: the routing fabric decides, intersection by intersection, exactly which streets get "opened" to carry your specific signals from one CLB to another, while every other unused street stays closed off.</p>
+    </div>
+    <figure class="diagram">
+      <svg viewBox="0 0 320 220" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <g stroke="#1e2836" stroke-width="2">
+          <line x1="20" y1="30" x2="300" y2="30"/><line x1="20" y1="80" x2="300" y2="80"/><line x1="20" y1="130" x2="300" y2="130"/><line x1="20" y1="180" x2="300" y2="180"/>
+          <line x1="60" y1="10" x2="60" y2="210"/><line x1="140" y1="10" x2="140" y2="210"/><line x1="220" y1="10" x2="220" y2="210"/><line x1="280" y1="10" x2="280" y2="210"/>
+        </g>
+        <path d="M60,30 L60,80 L140,80 L140,180 L220,180" fill="none" stroke="#22d3ee" stroke-width="3"/>
+        <circle cx="60" cy="30" r="5" fill="#22d3ee"/><circle cx="60" cy="80" r="5" fill="#22d3ee"/><circle cx="140" cy="80" r="5" fill="#22d3ee"/><circle cx="140" cy="180" r="5" fill="#22d3ee"/><circle cx="220" cy="180" r="5" fill="#22d3ee"/>
+        <circle cx="140" cy="30" r="4" fill="#5b6b80"/><circle cx="220" cy="30" r="4" fill="#5b6b80"/><circle cx="280" cy="80" r="4" fill="#5b6b80"/><circle cx="60" cy="130" r="4" fill="#5b6b80"/><circle cx="280" cy="180" r="4" fill="#5b6b80"/>
+        <text x="35" y="230" fill="#22d3ee" font-size="11" font-family="ui-monospace,monospace">— an actual configured signal path</text>
+      </svg>
+      <figcaption>A tiny slice of a routing grid. Cyan dots = switch points turned ON for this design's signal path. Grey dots = every other switch point, left OFF and unused.</figcaption>
+    </figure>
+    <p>This is why FPGA design tools (Vivado, Chapter 24) spend so much time on <b>place and route</b> — deciding exactly which physical CLBs your logic lands on, and exactly which switch points get turned on to connect them, all while trying to keep wire paths short enough to hit your target clock speed.</p>
+  </section>
+
+  <section class="chapter-section" id="io-blocks" data-nav="I/O Blocks (IOBs)">
+    <h2>I/O Blocks — The Chip's Doorways to the Outside World</h2>
+    <p>Around the outer edge of the FPGA's logic grid sit <b>I/O Blocks (IOBs)</b> — the circuitry directly connected to the physical metal pins of the chip package. Each IOB can be configured for a specific voltage standard, direction (input, output, or bidirectional), and drive strength, letting the same FPGA pin connect to anything from a simple LED to a high-speed HDMI link, just by configuring that IOB correctly.</p>
+  </section>
+
+  <section class="chapter-section" id="hard-blocks" data-nav="Dedicated hard blocks">
+    <h2>Dedicated Hard Blocks — Not Everything Is Built From LUTs</h2>
+    <p>Building things like multiplication or large memories purely out of general-purpose LUTs would be slow and wasteful. So modern FPGAs also include dedicated, pre-built ("hard") blocks scattered across the chip:</p>
+    <ul>
+      <li><b>DSP Slices</b> — dedicated hardware multipliers and adders, purpose-built for fast math (signal processing, filters, machine learning math).</li>
+      <li><b>Block RAM (BRAM)</b> — small, fast, dedicated memory chunks distributed across the chip, far more efficient than building memory out of individual flip-flops.</li>
+      <li><b>Clock Management (PLL/MMCM)</b> — dedicated circuitry that takes one input clock and generates other clock frequencies your design needs (faster, slower, phase-shifted), with high precision.</li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="full-floorplan" data-nav="Putting it all together">
+    <h2>Putting It All Together: A Simplified Floorplan</h2>
+    <figure class="diagram">
+      <svg viewBox="0 0 460 300" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <rect x="20" y="20" width="420" height="260" fill="none" stroke="#2a3a4d" stroke-width="2"/>
+        <text x="30" y="14" class="pinlbl">I/O Blocks (IOBs) line the entire outer edge →</text>
+        <g fill="#141b26" stroke="#93a4b8" stroke-width="1">
+          <!-- IOB perimeter marks -->
+          <rect x="20" y="20" width="14" height="14"/><rect x="20" y="50" width="14" height="14"/><rect x="20" y="80" width="14" height="14"/><rect x="20" y="110" width="14" height="14"/><rect x="20" y="140" width="14" height="14"/><rect x="20" y="170" width="14" height="14"/><rect x="20" y="200" width="14" height="14"/><rect x="20" y="230" width="14" height="14"/><rect x="20" y="260" width="14" height="14"/>
+          <rect x="426" y="20" width="14" height="14"/><rect x="426" y="50" width="14" height="14"/><rect x="426" y="80" width="14" height="14"/><rect x="426" y="110" width="14" height="14"/><rect x="426" y="140" width="14" height="14"/><rect x="426" y="170" width="14" height="14"/><rect x="426" y="200" width="14" height="14"/><rect x="426" y="230" width="14" height="14"/><rect x="426" y="260" width="14" height="14"/>
+        </g>
+        <!-- grid of CLBs -->
+        <g fill="#141b26" stroke="#3b82f6" stroke-width="1">
+          <g id="clbrow"></g>
+        </g>
+        <script><![CDATA[]]></script>
+        <!-- manually place a grid since no JS in static preview -->
+        <g fill="#16202c" stroke="#3b82f6" stroke-width="1">
+          <rect x="55"  y="35" width="18" height="18"/><rect x="80"  y="35" width="18" height="18"/><rect x="105" y="35" width="18" height="18"/><rect x="130" y="35" width="18" height="18"/><rect x="185" y="35" width="18" height="18"/><rect x="210" y="35" width="18" height="18"/><rect x="235" y="35" width="18" height="18"/><rect x="290" y="35" width="18" height="18"/><rect x="315" y="35" width="18" height="18"/><rect x="340" y="35" width="18" height="18"/><rect x="365" y="35" width="18" height="18"/>
+          <rect x="55"  y="65" width="18" height="18"/><rect x="80"  y="65" width="18" height="18"/><rect x="105" y="65" width="18" height="18"/><rect x="130" y="65" width="18" height="18"/><rect x="185" y="65" width="18" height="18"/><rect x="210" y="65" width="18" height="18"/><rect x="235" y="65" width="18" height="18"/><rect x="290" y="65" width="18" height="18"/><rect x="315" y="65" width="18" height="18"/><rect x="340" y="65" width="18" height="18"/><rect x="365" y="65" width="18" height="18"/>
+          <rect x="55"  y="95" width="18" height="18"/><rect x="80"  y="95" width="18" height="18"/><rect x="105" y="95" width="18" height="18"/><rect x="130" y="95" width="18" height="18"/><rect x="185" y="95" width="18" height="18"/><rect x="210" y="95" width="18" height="18"/><rect x="235" y="95" width="18" height="18"/><rect x="290" y="95" width="18" height="18"/><rect x="315" y="95" width="18" height="18"/><rect x="340" y="95" width="18" height="18"/><rect x="365" y="95" width="18" height="18"/>
+          <rect x="55"  y="125" width="18" height="18"/><rect x="80"  y="125" width="18" height="18"/><rect x="105" y="125" width="18" height="18"/><rect x="130" y="125" width="18" height="18"/><rect x="185" y="125" width="18" height="18"/><rect x="210" y="125" width="18" height="18"/><rect x="235" y="125" width="18" height="18"/><rect x="290" y="125" width="18" height="18"/><rect x="315" y="125" width="18" height="18"/><rect x="340" y="125" width="18" height="18"/><rect x="365" y="125" width="18" height="18"/>
+          <rect x="55"  y="185" width="18" height="18"/><rect x="80"  y="185" width="18" height="18"/><rect x="105" y="185" width="18" height="18"/><rect x="130" y="185" width="18" height="18"/><rect x="185" y="185" width="18" height="18"/><rect x="210" y="185" width="18" height="18"/><rect x="235" y="185" width="18" height="18"/><rect x="290" y="185" width="18" height="18"/><rect x="315" y="185" width="18" height="18"/><rect x="340" y="185" width="18" height="18"/><rect x="365" y="185" width="18" height="18"/>
+          <rect x="55"  y="215" width="18" height="18"/><rect x="80"  y="215" width="18" height="18"/><rect x="105" y="215" width="18" height="18"/><rect x="130" y="215" width="18" height="18"/><rect x="185" y="215" width="18" height="18"/><rect x="210" y="215" width="18" height="18"/><rect x="235" y="215" width="18" height="18"/><rect x="290" y="215" width="18" height="18"/><rect x="315" y="215" width="18" height="18"/><rect x="340" y="215" width="18" height="18"/><rect x="365" y="215" width="18" height="18"/>
+          <rect x="55"  y="245" width="18" height="18"/><rect x="80"  y="245" width="18" height="18"/><rect x="105" y="245" width="18" height="18"/><rect x="130" y="245" width="18" height="18"/><rect x="185" y="245" width="18" height="18"/><rect x="210" y="245" width="18" height="18"/><rect x="235" y="245" width="18" height="18"/><rect x="290" y="245" width="18" height="18"/><rect x="315" y="245" width="18" height="18"/><rect x="340" y="245" width="18" height="18"/><rect x="365" y="245" width="18" height="18"/>
+        </g>
+        <!-- BRAM column -->
+        <rect x="155" y="30" width="20" height="240" fill="rgba(34,211,238,.15)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="118" y="290" fill="#22d3ee" font-size="10.5" font-family="ui-monospace,monospace">Block RAM column</text>
+        <!-- DSP column -->
+        <rect x="255" y="30" width="20" height="240" fill="rgba(245,165,36,.15)" stroke="#f5a524" stroke-width="1.5"/>
+        <text x="245" y="290" fill="#f5a524" font-size="10.5" font-family="ui-monospace,monospace">DSP column</text>
+        <text x="55" y="14" fill="#3b82f6" font-size="10.5" font-family="ui-monospace,monospace">■ CLBs (LUT+FF slices) fill the rest of the grid</text>
+      </svg>
+      <figcaption>A real FPGA floorplan (simplified): thousands of CLBs fill most of the grid, with dedicated BRAM and DSP columns interspersed, and IOBs ringing the entire outer edge.</figcaption>
+    </figure>
+  </section>
+
+  <section class="chapter-section" id="bitstream-preview" data-nav="Bitstream preview">
+    <h2>How Your Design Actually Gets In There</h2>
+    <p>Everything you just read — every LUT's memory contents, every switch point's on/off state, every CLB's mux selection — is controlled by a giant file called a <b>bitstream</b>. When you write Verilog code (Part 3) and run it through Vivado (Chapter 24), the tool's entire job is to figure out how to fill in every one of these millions of tiny configuration bits so the resulting hardware behaves exactly like the circuit you described — then it loads that bitstream file onto the physical board.</p>
+  </section>
+
+  <section class="chapter-section" id="summary" data-nav="Summary & key points">
+    <h2>Summary</h2>
+    <p>An FPGA's "reconfigurability" comes from LUTs — tiny memory tables that can be rewritten to represent any Boolean function of their inputs. Each LUT is bundled with a flip-flop and an output-select mux into a CLB (or slice), giving it both combinational and memory capability. Thousands of CLBs are connected via a programmable routing fabric — a grid of wires and switch points configured per-design. IOBs handle the physical connection to chip pins, while dedicated hard blocks (DSP slices, Block RAM, clock management) handle tasks too slow or wasteful to build from plain LUTs. All of this configuration — every LUT, every switch, every mux — lives inside one giant file called the bitstream.</p>
+    <h3>Key Points</h3>
+    <ul>
+      <li>A k-input LUT stores 2ᵏ answers and can represent any function of those k inputs.</li>
+      <li>CLB/slice = LUT + flip-flop + output-select mux.</li>
+      <li>Programmable routing = grid of wires + switch points, configured per design ("place and route").</li>
+      <li>IOBs connect logic to physical chip pins; hard blocks (DSP, BRAM, clocking) handle specialized tasks efficiently.</li>
+      <li>The bitstream is the master file encoding every configuration bit on the chip.</li>
+    </ul>
+    <div class="mem-trick"><b>Memory Trick:</b> "LUT = a phonebook of pre-written answers. CLB = phonebook + memory + a switch to choose which one you get. Routing = the city's traffic lights connecting every phonebook to every other one."</div>
+  </section>
+
+  <section class="chapter-section" id="practice-questions" data-nav="Practice questions">
+    <h2>Practice Questions</h2>
+    <ol>
+      <li>How many memory cells does a 4-input LUT contain?</li>
+      <li>Explain, in your own words, why a LUT can implement literally any function of its inputs.</li>
+      <li>What are the three main parts of a basic CLB/slice?</li>
+      <li>Why do FPGAs include dedicated DSP slices instead of building all math from LUTs?</li>
+    </ol>
+  </section>
+
+  <section class="chapter-section" id="interview-questions" data-nav="Interview questions">
+    <h2>Interview Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>How does a LUT actually implement logic functions internally?</summary><div class="answer">It's a small memory array with 2ᵏ cells for k inputs. The inputs act as an address into this memory, and whatever value is pre-loaded at that address is the LUT's output — so any truth table can be "written into" the LUT to make it behave as that function.</div></details></li>
+      <li><details class="qa"><summary>What is the role of the routing fabric in an FPGA?</summary><div class="answer">It's a configurable mesh of wires and switch points that connects CLBs (and other blocks) together according to the specific design being implemented, allowing arbitrary signal paths across the chip.</div></details></li>
+      <li><details class="qa"><summary>Why are Block RAMs used instead of building memory from flip-flops?</summary><div class="answer">Flip-flop-based memory (built from general logic) is far less area- and power-efficient than dedicated, purpose-built RAM blocks, which are optimized specifically for dense, fast storage.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="viva-questions" data-nav="Viva questions">
+    <h2>Viva Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>What does LUT stand for?</summary><div class="answer">Look-Up Table.</div></details></li>
+      <li><details class="qa"><summary>What does CLB stand for?</summary><div class="answer">Configurable Logic Block.</div></details></li>
+      <li><details class="qa"><summary>What file encodes the final configuration loaded onto an FPGA?</summary><div class="answer">The bitstream.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="assignments" data-nav="Assignments & answers">
+    <h2>Assignments</h2>
+    <p>1. Write out, as a small table, all 4 memory cell contents needed to configure a 2-input LUT to behave as an XOR gate. 2. Draw a labeled CLB/slice diagram from memory. 3. Explain, in 100+ words, why place-and-route (deciding which CLB gets which logic, and which switches connect them) is a genuinely hard computational problem for large designs.</p>
+    <details class="qa" style="margin-top:16px;">
+      <summary>Reveal Answers to Practice Questions</summary>
+      <div class="answer">
+        1) 2⁴ = 16 memory cells.<br>
+        2) Because the LUT is just a memory table addressed by its inputs — any truth table you can write down can be stored into that memory, so the LUT can reproduce the output of literally any function of its input count.<br>
+        3) LUT, flip-flop, and an output-select multiplexer.<br>
+        4) Because dedicated hardware multipliers/adders are far faster, smaller, and more power-efficient than the same math built from many general-purpose LUTs, which is especially important for signal-processing-heavy designs.
+      </div>
+    </details>
+  </section>
+
+  <div class="footer-nav">
+    <a href="chapter-06.html"><span class="lbl">← BACK</span>What is an FPGA? History & Applications</a>
+    <a href="chapter-08.html" class="next"><span class="lbl">NEXT</span>FPGA vs Arduino vs ESP32 vs Raspberry Pi vs MCU</a>
+  </div>
+
+</article>
+</div>
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">↑</button>
+
+<script>window.CURRENT_CHAPTER_ID = "ch-07";</script>
+<script src="shared/nav.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => { const t = document.getElementById("reading-time"); const t2 = document.getElementById("reading-time-2"); if(t && t2){ const obs = new MutationObserver(()=>{ t2.textContent = t.textContent; }); obs.observe(t, {childList:true}); } });</script>
+</body>
+</html>
