@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 8 · FPGA vs Arduino vs ESP32 vs Raspberry Pi vs MCU — FPGA & Verilog Handbook</title>
+<link rel="stylesheet" href="shared/styles.css">
+<style>
+  .blockbox{ fill:#141b26; stroke:#3b82f6; stroke-width:2; }
+  .blocklbl{ fill:#dbe6f0; font-family:ui-monospace,monospace; font-size:13px; }
+  .pinlbl{ fill:#93a4b8; font-family:ui-monospace,monospace; font-size:11.5px; }
+  .wire{ stroke:#93a4b8; stroke-width:2; fill:none; }
+  .device-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; margin:18px 0; }
+  .device-card{ background:var(--sheet-raised); border:1px solid var(--line); border-radius:10px; padding:16px 18px; }
+  .device-card h4{ margin:0 0 6px; font-size:14px; }
+  .device-card p{ margin:0; font-size:13px; color:var(--ink-dim); }
+</style>
+</head>
+<body>
+<div class="board-grid"></div>
+
+<div class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Open chapter menu"><span></span><span></span><span></span></button>
+  <div class="topbar-title"><b>Chapter 08</b> · FPGA vs Arduino vs ESP32 vs Raspberry Pi vs MCU</div>
+  <div class="topbar-right"><span id="reading-time" class="dim" style="font-family:var(--font-mono);font-size:12px;"></span></div>
+</div>
+<div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="logo">◈ FPGA & VERILOG HANDBOOK</div>
+    <div class="tag">From absolute zero to a working FPGA board</div>
+  </div>
+  <div class="sidebar-search"><input type="text" id="sidebar-search-input" placeholder="Search chapters..."></div>
+  <div class="sidebar-group" id="sidebar-list"></div>
+</nav>
+
+<div class="page-wrap">
+<article class="sheet">
+
+  <div class="eyebrow">Part 2 · FPGA World — Chapter 08 (Final chapter of Part 2)</div>
+  <h1 class="h-title">FPGA vs Arduino vs ESP32 vs Raspberry Pi vs Microcontroller</h1>
+  <p class="h-sub">You've probably already used an ESP32 or an Arduino. This chapter places every one of these boards on the same map so you know exactly where an FPGA sits — and, just as importantly, when you'd reach for one of the others instead.</p>
+  <div class="meta-row"><span>📖 Beginner Level</span><span>🕐 <span id="reading-time-2">—</span></span><span>🧩 7 sections</span></div>
+
+  <section class="chapter-section" id="core-distinction" data-nav="The one distinction that explains everything">
+    <h2>The One Distinction That Explains Everything</h2>
+    <p>Every board in this comparison falls into exactly one of two categories, and once you see this split, the rest of the chapter is just details:</p>
+    <div class="grid-2">
+      <div class="callout">
+        <div class="callout-title">Instruction-Based (Software)</div>
+        A processor fetches one instruction at a time from memory, executes it, then fetches the next — over and over, extremely fast, but fundamentally sequential. Arduino, ESP32, and Raspberry Pi all belong here.
+      </div>
+      <div class="callout good">
+        <div class="callout-title">Circuit-Based (Hardware)</div>
+        There is no "program" and no instruction fetching at all — your design <i>becomes</i> real, physical, parallel circuitry the moment it's configured. Only the FPGA belongs here (from Chapters 6–7).
+      </div>
+    </div>
+    <p>Keep this distinction in your head through the rest of this chapter — nearly every difference below is really just a consequence of this one fact.</p>
+  </section>
+
+  <section class="chapter-section" id="the-lineup" data-nav="Meet the lineup">
+    <h2>Meet the Lineup</h2>
+    <div class="device-grid">
+      <div class="device-card"><h4>🔧 Microcontroller (MCU)</h4><p>A single chip combining a small CPU, a little RAM, some flash storage, and various peripherals (timers, ADC, UART) — designed to run one program, sequentially, controlling simple hardware. The ATmega328 (used on classic Arduino boards) is a textbook example.</p></div>
+      <div class="device-card"><h4>🔵 Arduino</h4><p>Not a chip itself — it's a beginner-friendly development <i>board</i> built around an MCU, plus the Arduino IDE and libraries that make programming that MCU dramatically easier for newcomers.</p></div>
+      <div class="device-card"><h4>📶 ESP32</h4><p>A more powerful MCU (often dual-core) with built-in Wi-Fi and Bluetooth radios baked directly onto the same chip — purpose-built for IoT projects that need wireless connectivity without extra hardware.</p></div>
+      <div class="device-card"><h4>🖥️ Raspberry Pi</h4><p>An entire small computer (a "System on Chip" with a much more powerful CPU) that boots a full operating system (usually Linux) — closer to a tiny PC than to a microcontroller board.</p></div>
+      <div class="device-card"><h4>⚡ FPGA</h4><p>Not a processor at all — a grid of reconfigurable hardware (Chapters 6–7) that becomes whatever digital circuit you design, with everything running in true, simultaneous parallel hardware.</p></div>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="comparison-table" data-nav="Full comparison table">
+    <h2>The Full Comparison Table</h2>
+    <table>
+      <thead><tr><th></th><th>MCU (generic)</th><th>Arduino</th><th>ESP32</th><th>Raspberry Pi</th><th>FPGA</th></tr></thead>
+      <tbody>
+        <tr><td>Execution model</td><td>Sequential instructions</td><td>Sequential instructions</td><td>Sequential (dual-core helps some)</td><td>Sequential, but OS multitasks between programs</td><td>True parallel hardware</td></tr>
+        <tr><td>Typical language</td><td>C / C++ / assembly</td><td>C / C++ (Arduino IDE)</td><td>C / C++ / MicroPython</td><td>Python, C, almost anything (full OS)</td><td>Verilog / VHDL (hardware description)</td></tr>
+        <tr><td>Runs an OS?</td><td>No (or tiny RTOS)</td><td>No</td><td>No (or tiny RTOS)</td><td>Yes — full Linux</td><td>No — it <i>is</i> the hardware</td></tr>
+        <tr><td>Real-time determinism</td><td>Good</td><td>Good</td><td>Good, but Wi-Fi can add jitter</td><td>Poor (OS scheduling adds unpredictability)</td><td>Excellent — nanosecond-level, exact</td></tr>
+        <tr><td>Reconfigurable hardware?</td><td>No</td><td>No</td><td>No</td><td>No</td><td>Yes — the whole point</td></tr>
+        <tr><td>Best at</td><td>Simple dedicated control tasks</td><td>Learning, prototyping simple projects</td><td>IoT devices needing Wi-Fi/BLE</td><td>General computing, servers, vision/ML software</td><td>Massively parallel, ultra-low-latency, custom hardware tasks</td></tr>
+        <tr><td>Learning curve for beginners</td><td>Moderate</td><td>Easy</td><td>Easy–Moderate</td><td>Easy (feels like a PC)</td><td>Steep — a genuinely different way of thinking</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="chapter-section" id="when-to-choose" data-nav="When to choose what">
+    <h2>When Would You Actually Reach for Each One?</h2>
+    <div class="analogy-box">
+      <div class="tag">Analogy · Building a Restaurant Kitchen</div>
+      <p style="margin-bottom:0">An <b>MCU/Arduino</b> is one competent chef following a recipe card, step by step — perfect for a small food stall. An <b>ESP32</b> is that same chef, but now also able to phone in orders and take payments wirelessly. A <b>Raspberry Pi</b> is hiring a full restaurant manager with an entire staffing office (the OS) who can juggle many different tasks, but with less predictable timing for any one specific task. An <b>FPGA</b> is building a custom assembly line with a hundred dedicated machines, each doing one exact job, all running at the same instant — ideal when you need guaranteed, exact timing and truly simultaneous work, but it takes real engineering effort to design that assembly line in the first place.</p>
+    </div>
+    <ul>
+      <li><b>Choose an MCU/Arduino</b> when the task is simple, sequential, and doesn't need brutal timing precision — blinking LEDs, reading a sensor every second, driving a small motor.</li>
+      <li><b>Choose an ESP32</b> when your project needs wireless connectivity (Wi-Fi/Bluetooth) baked in without extra modules — an IoT weather station, a smart home switch.</li>
+      <li><b>Choose a Raspberry Pi</b> when you need a real operating system, a filesystem, networking stacks, or to run software like a web server, a database, or Python-based computer vision.</li>
+      <li><b>Choose an FPGA</b> when you need exact, guaranteed timing (down to nanoseconds), true simultaneous parallel processing, or a completely custom digital circuit that no off-the-shelf processor can offer — high-speed signal processing, custom protocols, hardware acceleration.</li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="working-together" data-nav="They often work together">
+    <h2>They Often Work Together, Not Against Each Other</h2>
+    <p>In real products, these devices are frequently combined rather than competing. A common real-world pattern is an FPGA paired with a microcontroller: the FPGA handles the ultra-fast, parallel, timing-critical hardware work (like processing a high-speed sensor feed), while a nearby MCU handles simpler sequential housekeeping (like sending status updates over Wi-Fi). Some advanced chips — like AMD/Xilinx's Zynq family — even combine both an ARM processor <i>and</i> FPGA fabric on a single piece of silicon, letting a design use whichever execution model fits each part of the problem best.</p>
+  </section>
+
+  <section class="chapter-section" id="summary" data-nav="Summary & key points">
+    <h2>Summary</h2>
+    <p>Every board in this chapter splits into instruction-based (MCU, Arduino, ESP32, Raspberry Pi) or circuit-based (FPGA) execution. MCUs and Arduino run one sequential program on simple hardware; ESP32 adds built-in wireless to that same model; Raspberry Pi scales up to a full computer running an entire operating system; FPGAs abandon the instruction model entirely, becoming true, simultaneous, reconfigurable hardware. None of these is strictly "better" — each is the right tool for a different kind of problem, and real designs frequently combine several of them together.</p>
+    <h3>Key Points</h3>
+    <ul>
+      <li>Instruction-based (MCU/Arduino/ESP32/Raspberry Pi) = sequential execution. Circuit-based (FPGA) = true parallel hardware.</li>
+      <li>ESP32 = an MCU with built-in Wi-Fi/Bluetooth.</li>
+      <li>Raspberry Pi = a full small computer running an OS, not just an MCU.</li>
+      <li>FPGA offers the most exact timing and truest parallelism, at the cost of a steeper learning curve.</li>
+      <li>Real products often combine an FPGA with an MCU, each handling the part of the problem it's best suited for.</li>
+    </ul>
+    <div class="mem-trick"><b>Memory Trick:</b> "MCU follows a recipe. ESP32 follows a recipe AND phones it in wirelessly. Raspberry Pi runs the whole restaurant. FPGA builds a custom assembly line."</div>
+  </section>
+
+  <section class="chapter-section" id="practice-questions" data-nav="Practice questions">
+    <h2>Practice Questions</h2>
+    <ol>
+      <li>Explain, in your own words, why an FPGA offers more precise timing guarantees than a Raspberry Pi.</li>
+      <li>Would you choose an ESP32 or an FPGA for a project that needs to send temperature readings to the cloud every minute? Justify your answer.</li>
+      <li>What does it mean for a chip like the Zynq family to combine "an ARM processor and FPGA fabric"?</li>
+      <li>Give one project idea that would genuinely benefit from combining an FPGA with an MCU.</li>
+    </ol>
+  </section>
+
+  <section class="chapter-section" id="interview-questions" data-nav="Interview questions">
+    <h2>Interview Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>What is the fundamental architectural difference between an FPGA and a microcontroller?</summary><div class="answer">A microcontroller executes a stored program sequentially, one instruction at a time, using a shared CPU. An FPGA has no program or CPU at all — it is configured into real, parallel hardware circuitry, with every part of the design able to operate simultaneously.</div></details></li>
+      <li><details class="qa"><summary>Why does a Raspberry Pi have poorer real-time determinism than a microcontroller, despite being more powerful?</summary><div class="answer">Its operating system schedules many competing processes and can be interrupted at unpredictable times, so exact timing guarantees for any one task are much harder to make compared to a microcontroller running one dedicated program with no OS in the way.</div></details></li>
+      <li><details class="qa"><summary>Why would a real product combine an FPGA with a microcontroller instead of using just one?</summary><div class="answer">Each excels at a different job: the FPGA handles timing-critical, highly parallel hardware tasks, while the microcontroller handles simpler sequential housekeeping (like network communication), letting the overall system use the right execution model for each part of the workload.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="viva-questions" data-nav="Viva questions">
+    <h2>Viva Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>Does an FPGA run an operating system?</summary><div class="answer">No — an FPGA has no processor or program; it becomes the actual configured hardware circuit itself.</div></details></li>
+      <li><details class="qa"><summary>What makes the ESP32 different from a basic microcontroller?</summary><div class="answer">It includes built-in Wi-Fi and Bluetooth radios on the same chip, purpose-built for IoT connectivity.</div></details></li>
+      <li><details class="qa"><summary>Name one chip family that combines an ARM processor with FPGA fabric.</summary><div class="answer">AMD/Xilinx's Zynq family.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="assignments" data-nav="Assignments & answers">
+    <h2>Assignments</h2>
+    <p>1. Make your own comparison table (from memory, then check it against this chapter) covering execution model, language, and best use case for all five categories. 2. Pick one of your own past ESP32 projects and explain which parts of it, if any, could benefit from being redesigned on an FPGA instead — and why, or why not. 3. Research one real commercial product that combines an FPGA with a microcontroller or processor, and summarize why that combination was chosen.</p>
+    <details class="qa" style="margin-top:16px;">
+      <summary>Reveal Answers to Practice Questions</summary>
+      <div class="answer">
+        1) An FPGA's logic is real dedicated hardware with no shared scheduler or OS interrupting it, so its timing behavior is fixed and predictable down to the nanosecond; a Raspberry Pi's OS can interrupt or delay any task unpredictably.<br>
+        2) ESP32 — the task is simple, low-frequency, and needs built-in Wi-Fi, which is exactly what the ESP32 is designed for; an FPGA would be massive overkill and lacks built-in wireless.<br>
+        3) It means the single chip contains two genuinely different systems side by side: a traditional sequential ARM processor core, and separate reconfigurable FPGA fabric — letting one design use whichever execution model suits each part of the problem.<br>
+        4) Example: a security camera system where the FPGA does real-time video processing/compression (parallel, timing-critical) while an MCU handles Wi-Fi upload and user settings (simple, sequential housekeeping).
+      </div>
+    </details>
+  </section>
+
+  <div class="footer-nav">
+    <a href="chapter-07.html"><span class="lbl">← BACK</span>FPGA Internal Architecture (LUT, CLB, Routing)</a>
+    <a href="chapter-09.html" class="next"><span class="lbl">NEXT</span>Verilog Basics: module, ports, wire, reg, assign</a>
+  </div>
+
+</article>
+</div>
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">↑</button>
+
+<script>window.CURRENT_CHAPTER_ID = "ch-08";</script>
+<script src="shared/nav.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => { const t = document.getElementById("reading-time"); const t2 = document.getElementById("reading-time-2"); if(t && t2){ const obs = new MutationObserver(()=>{ t2.textContent = t.textContent; }); obs.observe(t, {childList:true}); } });</script>
+</body>
+</html>
