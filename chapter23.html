@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 23 · Mini Projects: Stopwatch, Calculator, PWM LED, 7-Seg Counter — FPGA & Verilog Handbook</title>
+<link rel="stylesheet" href="shared/styles.css">
+</head>
+<body>
+<div class="board-grid"></div>
+
+<div class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Open chapter menu"><span></span><span></span><span></span></button>
+  <div class="topbar-title"><b>Chapter 23</b> · Mini Projects: Stopwatch, Calculator, PWM LED, 7-Seg Counter</div>
+  <div class="topbar-right"><span id="reading-time" class="dim" style="font-family:var(--font-mono);font-size:12px;"></span></div>
+</div>
+<div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="logo">◈ FPGA & VERILOG HANDBOOK</div>
+    <div class="tag">From absolute zero to a working FPGA board</div>
+  </div>
+  <div class="sidebar-search"><input type="text" id="sidebar-search-input" placeholder="Search chapters..."></div>
+  <div class="sidebar-group" id="sidebar-list"></div>
+</nav>
+
+<div class="page-wrap">
+<article class="sheet">
+
+  <div class="eyebrow">Part 5 · Verilog Programs — Chapter 23 (Final chapter of Part 5)</div>
+  <h1 class="h-title">Mini Projects: Stopwatch, Calculator, PWM LED, 7-Seg Counter</h1>
+  <p class="h-sub">Four final projects, each reusing modules you've already built — proof that everything in this handbook was designed to fit together.</p>
+  <div class="meta-row"><span>📖 Intermediate Level</span><span>🕐 <span id="reading-time-2">—</span></span><span>🧩 5 sections</span></div>
+
+  <section class="chapter-section" id="stopwatch" data-nav="Project 1: Stopwatch">
+    <h2>Project 1: Stopwatch (Minutes : Seconds)</h2>
+    <p>A stopwatch is a counter (Chapter 21) with two twists: it counts in a 0–59 range instead of a clean power-of-two range, and it only advances on a real 1-second "tick," which in a real design would come from a clock divider exactly like Chapter 22's LED blinker.</p>
+    <div class="codeblock">
+      <div class="code-head"><span>stopwatch.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">stopwatch</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">clk</span>, <span class="id">rst</span>, <span class="id">run</span>, <span class="id">tick</span>,   <span class="cmt">// tick pulses once per second, from a divider (Chapter 22)</span>
+    <span class="kw">output</span> <span class="typ">reg</span>  [5:0] <span class="id">seconds</span>,
+    <span class="kw">output</span> <span class="typ">reg</span>  [5:0] <span class="id">minutes</span>
+);
+    <span class="kw">always</span> @(<span class="kw">posedge</span> <span class="id">clk</span> <span class="kw">or</span> <span class="kw">posedge</span> <span class="id">rst</span>) <span class="kw">begin</span>
+        <span class="kw">if</span> (<span class="id">rst</span>) <span class="kw">begin</span>
+            <span class="id">seconds</span> <= 0;
+            <span class="id">minutes</span> <= 0;
+        <span class="kw">end</span> <span class="kw">else</span> <span class="kw">if</span> (<span class="id">run</span> && <span class="id">tick</span>) <span class="kw">begin</span>
+            <span class="kw">if</span> (<span class="id">seconds</span> == 6'<span class="typ">d</span>59) <span class="kw">begin</span>
+                <span class="id">seconds</span> <= 0;
+                <span class="kw">if</span> (<span class="id">minutes</span> == 6'<span class="typ">d</span>59)
+                    <span class="id">minutes</span> <= 0;         <span class="cmt">// wraps after 59:59, exactly like Chapter 16's overflow</span>
+                <span class="kw">else</span>
+                    <span class="id">minutes</span> <= <span class="id">minutes</span> + 1;
+            <span class="kw">end</span> <span class="kw">else</span> <span class="kw">begin</span>
+                <span class="id">seconds</span> <= <span class="id">seconds</span> + 1;
+            <span class="kw">end</span>
+        <span class="kw">end</span>
+        <span class="cmt">// if run=0, seconds/minutes simply hold -- this IS the pause behavior</span>
+    <span class="kw">end</span>
+<span class="kw">endmodule</span></pre>
+    </div>
+    <p>Notice the seconds-to-minutes rollover (<code>seconds == 59</code> → reset to 0 and bump <code>minutes</code>) is exactly a carry, structurally identical to a full adder's <code>cout</code> from Chapter 4 — just with a "carry out at 59" boundary instead of "carry out at 15."</p>
+    <div class="codeblock">
+      <div class="code-head"><span>stopwatch_tb.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">stopwatch_tb</span>;
+    <span class="typ">reg</span> <span class="id">clk</span> = 0, <span class="id">rst</span> = 1, <span class="id">run</span> = 0, <span class="id">tick</span> = 0;
+    <span class="typ">wire</span> [5:0] <span class="id">seconds</span>, <span class="id">minutes</span>;
+
+    <span class="id">stopwatch</span> <span class="id">uut</span> (.<span class="id">clk</span>(<span class="id">clk</span>), .<span class="id">rst</span>(<span class="id">rst</span>), .<span class="id">run</span>(<span class="id">run</span>), .<span class="id">tick</span>(<span class="id">tick</span>), .<span class="id">seconds</span>(<span class="id">seconds</span>), .<span class="id">minutes</span>(<span class="id">minutes</span>));
+
+    <span class="kw">always</span> #5 <span class="id">clk</span> = ~<span class="id">clk</span>;
+
+    <span class="cmt">// generate one "tick" pulse every 20 time units, simulating a real 1-second divider</span>
+    <span class="kw">always</span> #20 <span class="id">tick</span> = ~<span class="id">tick</span>;
+
+    <span class="kw">initial</span> <span class="kw">begin</span>
+        #12 <span class="id">rst</span> = 0;
+        <span class="id">run</span> = 1;
+        #1000 <span class="id">run</span> = 0;   <span class="cmt">// pause -- seconds/minutes should freeze here</span>
+        #100  <span class="id">run</span> = 1;  <span class="cmt">// resume -- should continue from where it paused</span>
+        #1000 <span class="kw">$finish</span>;
+    <span class="kw">end</span>
+
+    <span class="kw">initial</span> <span class="kw">$monitor</span>(<span class="str">"t=%0t run=%b -> %0d:%0d"</span>, <span class="kw">$time</span>, <span class="id">run</span>, <span class="id">minutes</span>, <span class="id">seconds</span>);
+<span class="kw">endmodule</span></pre>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="calculator" data-nav="Project 2: Simple Calculator">
+    <h2>Project 2: Simple 4-Function Calculator</h2>
+    <p>This project directly reuses Chapter 11's <code>mini_alu</code>, feeding its result straight into Chapter 19's <code>seven_seg_decoder</code>:</p>
+    <div class="codeblock">
+      <div class="code-head"><span>calculator.v — structural composition of two earlier chapters' modules</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">calculator</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> [1:0] <span class="id">op</span>,
+    <span class="kw">input</span>  <span class="typ">wire</span> [3:0] <span class="id">a</span>, <span class="id">b</span>,
+    <span class="kw">output</span> <span class="typ">wire</span> [3:0] <span class="id">result</span>,
+    <span class="kw">output</span> <span class="typ">wire</span> [6:0] <span class="id">seg</span>
+);
+    <span class="id">mini_alu</span>          <span class="id">alu</span>  (.<span class="id">op</span>(<span class="id">op</span>), .<span class="id">a</span>(<span class="id">a</span>), .<span class="id">b</span>(<span class="id">b</span>), .<span class="id">result</span>(<span class="id">result</span>));
+    <span class="id">seven_seg_decoder</span> <span class="id">disp</span> (.<span class="id">bcd</span>(<span class="id">result</span>), .<span class="id">seg</span>(<span class="id">seg</span>));
+<span class="kw">endmodule</span></pre>
+    </div>
+    <div class="callout warn">
+      <div class="callout-title">A deliberate scope limit worth understanding</div>
+      Chapter 19's seven-segment decoder only has entries for BCD digits 0–9. If <code>a + b</code> (or any operation) produces a result of 10–15, the display will simply blank (its <code>default</code> case). Displaying a full two-digit decimal result (like "12") on two separate seven-segment displays requires converting binary to BCD first — a genuinely useful but more advanced technique (often done with the "double dabble" algorithm) that sits just beyond this handbook's scope. For now, this calculator is correct and complete for results 0–9, and cleanly (not silently) blanks anything beyond that.
+    </div>
+  </section>
+
+  <section class="chapter-section" id="pwm-led" data-nav="Project 3: PWM LED (dimming)">
+    <h2>Project 3: PWM LED — Controlling Brightness, Not Just On/Off</h2>
+    <p>Chapter 22's LED blinker only ever fully turns an LED on or off. But what if you want it <i>dim</i> — partially lit? Real LEDs can't be "half voltage" the way you'd dim an old incandescent bulb (Chapter 1's digital-only nature), so instead we use <b>PWM (Pulse Width Modulation)</b>: switch the LED on and off <i>extremely</i> fast, and control what <b>fraction</b> of each cycle it's on. The human eye is too slow to see the flicker (exactly like Chapter 22's blinker reasoning, in reverse) and instead perceives the <i>average</i> brightness.</p>
+    <div class="codeblock">
+      <div class="code-head"><span>pwm_led.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">pwm_led</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">clk</span>, <span class="id">rst</span>,
+    <span class="kw">input</span>  <span class="typ">wire</span> [7:0] <span class="id">duty</span>,   <span class="cmt">// 0 = always off, 255 = always on, 128 = ~50% brightness</span>
+    <span class="kw">output</span> <span class="typ">reg</span>  <span class="id">led</span>
+);
+    <span class="typ">reg</span> [7:0] <span class="id">count</span>;
+
+    <span class="kw">always</span> @(<span class="kw">posedge</span> <span class="id">clk</span> <span class="kw">or</span> <span class="kw">posedge</span> <span class="id">rst</span>) <span class="kw">begin</span>
+        <span class="kw">if</span> (<span class="id">rst</span>) <span class="id">count</span> <= 0;
+        <span class="kw">else</span>        <span class="id">count</span> <= <span class="id">count</span> + 1;   <span class="cmt">// free-running 8-bit counter, wraps every 256 cycles</span>
+    <span class="kw">end</span>
+
+    <span class="kw">always</span> @(*) <span class="kw">begin</span>
+        <span class="id">led</span> = (<span class="id">count</span> < <span class="id">duty</span>);   <span class="cmt">// LED on for exactly 'duty' out of every 256 cycles</span>
+    <span class="kw">end</span>
+<span class="kw">endmodule</span></pre>
+    </div>
+    <p>Across every full 256-cycle sweep of <code>count</code>, the LED is HIGH for exactly <code>duty</code> of those cycles — so <code>duty = 64</code> gives 25% brightness, <code>duty = 192</code> gives 75%, and so on. This exact same technique (a free-running counter compared against a threshold) controls motor speed, servo position, and LED brightness in real embedded and FPGA systems everywhere.</p>
+    <div class="codeblock">
+      <div class="code-head"><span>pwm_led_tb.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">pwm_led_tb</span>;
+    <span class="typ">reg</span  <span class="id">clk</span> = 0, <span class="id">rst</span> = 1;
+    <span class="typ">reg</span> [7:0] <span class="id">duty</span> = 64;   <span class="cmt">// 25% brightness</span>
+    <span class="typ">wire</span> <span class="id">led</span>;
+
+    <span class="id">pwm_led</span> <span class="id">uut</span> (.<span class="id">clk</span>(<span class="id">clk</span>), .<span class="id">rst</span>(<span class="id">rst</span>), .<span class="id">duty</span>(<span class="id">duty</span>), .<span class="id">led</span>(<span class="id">led</span>));
+    <span class="kw">always</span> #5 <span class="id">clk</span> = ~<span class="id">clk</span>;
+
+    <span class="kw">initial</span> <span class="kw">begin</span>
+        #12 <span class="id">rst</span> = 0;
+        #3000 <span class="kw">$finish</span>;   <span class="cmt">// long enough to see multiple full 256-cycle PWM periods</span>
+    <span class="kw">end</span>
+<span class="kw">endmodule</span></pre>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="sevenseg-counter" data-nav="Project 4: Seven-Segment Counter">
+    <h2>Project 4: Seven-Segment Digit Counter (0–9, Repeating)</h2>
+    <p>Our final project reuses Chapter 21's counter idea and Chapter 19's decoder together, driving a live, continuously-counting single-digit display:</p>
+    <div class="codeblock">
+      <div class="code-head"><span>seven_seg_counter.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">seven_seg_counter</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">clk</span>, <span class="id">rst</span>,
+    <span class="kw">output</span> <span class="typ">wire</span> [6:0] <span class="id">seg</span>
+);
+    <span class="typ">reg</span> [3:0] <span class="id">digit</span>;
+
+    <span class="kw">always</span> @(<span class="kw">posedge</span> <span class="id">clk</span> <span class="kw">or</span> <span class="kw">posedge</span> <span class="id">rst</span>) <span class="kw">begin</span>
+        <span class="kw">if</span> (<span class="id">rst</span>)
+            <span class="id">digit</span> <= 4'<span class="typ">d</span>0;
+        <span class="kw">else</span> <span class="kw">if</span> (<span class="id">digit</span> == 4'<span class="typ">d</span>9)
+            <span class="id">digit</span> <= 4'<span class="typ">d</span>0;    <span class="cmt">// wrap at 9, not 15 -- a "modulo-10" counter, unlike Chapter 21's power-of-2 counters</span>
+        <span class="kw">else</span>
+            <span class="id">digit</span> <= <span class="id">digit</span> + 1;
+    <span class="kw">end</span>
+
+    <span class="id">seven_seg_decoder</span> <span class="id">disp</span> (.<span class="id">bcd</span>(<span class="id">digit</span>), .<span class="id">seg</span>(<span class="id">seg</span>));
+<span class="kw">endmodule</span></pre>
+    </div>
+    <p>This is a <b>modulo-10 counter</b> — it deliberately wraps at 9 instead of the natural binary wraparound at 15, precisely because it's driving a decimal display. Comparing this to Chapter 21's plain 4-bit counter (which wraps at 15 automatically) highlights an important design lesson: <i>not every counter should be allowed to use its full natural range</i> — sometimes you must explicitly force an earlier wraparound to match what the rest of your system expects.</p>
+  </section>
+
+  <section class="chapter-section" id="summary" data-nav="Summary & exercises">
+    <h2>Summary — And a Look Back at Part 5</h2>
+    <p>All four projects in this chapter are built almost entirely from modules you already wrote: the stopwatch reuses the counter-with-rollover pattern from adders and counters; the calculator directly instantiates the ALU and seven-segment decoder from earlier chapters; PWM reuses the free-running-counter idea from the clock divider, compared against a threshold instead of counting to a fixed limit; and the seven-segment counter combines a modulo-10 counter with the same decoder used in the calculator. This is the real payoff of modular, well-tested design (Chapter 14's structural modeling): complex projects become mostly wiring, once their pieces are individually correct.</p>
+  </section>
+
+  <section class="chapter-section" id="interview-questions" data-nav="Interview questions">
+    <h2>Interview Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>How does PWM control an LED's apparent brightness using only fully-on/fully-off states?</summary><div class="answer">By rapidly switching the LED on and off within each fixed-length cycle, with the fraction of "on" time (duty cycle) determining the average power delivered — human vision is too slow to perceive the individual flicker and instead perceives the time-averaged brightness.</div></details></li>
+      <li><details class="qa"><summary>Why does the stopwatch's seconds counter wrap at 59 rather than at a power-of-two boundary?</summary><div class="answer">Because it must match real-world time units (60 seconds per minute), so its wraparound point is explicitly forced with an if-condition, rather than relying on natural binary overflow, which would wrap at 63 for a 6-bit value.</div></details></li>
+      <li><details class="qa"><summary>Why is the calculator project deliberately limited to displaying results 0-9?</summary><div class="answer">Because the seven-segment decoder from Chapter 19 only defines patterns for single BCD digits; displaying two-digit results would require a binary-to-BCD conversion step (such as the double-dabble algorithm) that is beyond the scope of a single decoder module.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="viva-questions" data-nav="Viva questions">
+    <h2>Viva Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>What does PWM stand for?</summary><div class="answer">Pulse Width Modulation.</div></details></li>
+      <li><details class="qa"><summary>In pwm_led.v, what duty value gives 100% brightness?</summary><div class="answer">255 (the counter never reaches a value ≥ duty, so led is HIGH essentially the entire time).</div></details></li>
+      <li><details class="qa"><summary>What two earlier modules does calculator.v instantiate?</summary><div class="answer">mini_alu (Chapter 11) and seven_seg_decoder (Chapter 19).</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="exercises" data-nav="Exercises">
+    <h2>Exercises</h2>
+    <p>1. Add an hours counter to the stopwatch, rolling over at 23 (a full HH:MM:SS stopwatch). 2. Modify pwm_led to accept a percentage (0-100) instead of a raw 0-255 duty value, converting internally. 3. Extend seven_seg_counter into a two-digit counter (00-99) using two seven_seg_decoder instances and a tens/ones split, without worrying about full binary-to-BCD conversion (hint: keep two separate BCD digit registers, similar to the stopwatch's minutes/seconds pattern).</p>
+    <div class="callout good" style="margin-top:24px;">
+      <div class="callout-title">Part 5 complete</div>
+      You've now written and verified real Verilog for every fundamental circuit in digital design — gates, adders, muxes, encoders, comparators, flip-flops, counters, shift registers, FSMs, and four complete mini-projects. Part 6 takes all of this out of the simulator and onto real Vivado and real hardware.
+    </div>
+  </section>
+
+  <div class="footer-nav">
+    <a href="chapter-22.html"><span class="lbl">← BACK</span>Mini Projects: Traffic Light, LED Blinker, Digital Lock</a>
+    <a href="chapter-24.html" class="next"><span class="lbl">NEXT</span>Vivado From Zero: Project → Bitstream → Board</a>
+  </div>
+
+</article>
+</div>
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">↑</button>
+
+<script>window.CURRENT_CHAPTER_ID = "ch-23";</script>
+<script src="shared/nav.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => { const t = document.getElementById("reading-time"); const t2 = document.getElementById("reading-time-2"); if(t && t2){ const obs = new MutationObserver(()=>{ t2.textContent = t.textContent; }); obs.observe(t, {childList:true}); } });</script>
+</body>
+</html>
