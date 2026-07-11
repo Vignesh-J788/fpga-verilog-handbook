@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 21 · Counters & Shift Registers — FPGA & Verilog Handbook</title>
+<link rel="stylesheet" href="shared/styles.css">
+</head>
+<body>
+<div class="board-grid"></div>
+
+<div class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Open chapter menu"><span></span><span></span><span></span></button>
+  <div class="topbar-title"><b>Chapter 21</b> · Counters & Shift Registers</div>
+  <div class="topbar-right"><span id="reading-time" class="dim" style="font-family:var(--font-mono);font-size:12px;"></span></div>
+</div>
+<div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="logo">◈ FPGA & VERILOG HANDBOOK</div>
+    <div class="tag">From absolute zero to a working FPGA board</div>
+  </div>
+  <div class="sidebar-search"><input type="text" id="sidebar-search-input" placeholder="Search chapters..."></div>
+  <div class="sidebar-group" id="sidebar-list"></div>
+</nav>
+
+<div class="page-wrap">
+<article class="sheet">
+
+  <div class="eyebrow">Part 5 · Verilog Programs — Chapter 21</div>
+  <h1 class="h-title">Counters & Shift Registers</h1>
+  <p class="h-sub">Chapter 20 ended with a hint: T flip-flops "want to toggle," making them the natural building block for counters. This chapter builds real counters and shift registers — both genuinely everywhere in real digital systems.</p>
+  <div class="meta-row"><span>📖 Beginner Level</span><span>🕐 <span id="reading-time-2">—</span></span><span>🧩 7 sections</span></div>
+
+  <section class="chapter-section" id="counter-up" data-nav="Up Counter">
+    <h2>4-Bit Up Counter</h2>
+    <p>A counter is just a register (a group of flip-flops, Chapter 20) that adds 1 to itself on every clock edge — nothing more exotic than that.</p>
+    <div class="codeblock">
+      <div class="code-head"><span>counter_up.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">counter_up</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">clk</span>, <span class="id">rst</span>,
+    <span class="kw">output</span> <span class="typ">reg</span> [3:0] <span class="id">count</span>
+);
+    <span class="kw">always</span> @(<span class="kw">posedge</span> <span class="id">clk</span> <span class="kw">or</span> <span class="kw">posedge</span> <span class="id">rst</span>) <span class="kw">begin</span>
+        <span class="kw">if</span> (<span class="id">rst</span>)
+            <span class="id">count</span> <= 4'<span class="typ">b</span><span class="num">0000</span>;
+        <span class="kw">else</span>
+            <span class="id">count</span> <= <span class="id">count</span> + 1;   <span class="cmt">// automatically wraps: 15 + 1 = 0 (4-bit overflow, Chapter 16)</span>
+    <span class="kw">end</span>
+<span class="kw">endmodule</span></pre>
+    </div>
+    <p>Note that <code>count + 1</code> naturally wraps from 15 back to 0 — exactly the overflow behavior explored in Chapter 16's ripple-adder test, now happening automatically every 16 clock cycles.</p>
+  </section>
+
+  <section class="chapter-section" id="counter-down-updown" data-nav="Down Counter & Up/Down Counter">
+    <h2>Down Counter and Up/Down Counter</h2>
+    <div class="codeblock">
+      <div class="code-head"><span>counter_down.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">counter_down</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">clk</span>, <span class="id">rst</span>,
+    <span class="kw">output</span> <span class="typ">reg</span> [3:0] <span class="id">count</span>
+);
+    <span class="kw">always</span> @(<span class="kw">posedge</span> <span class="id">clk</span> <span class="kw">or</span> <span class="kw">posedge</span> <span class="id">rst</span>) <span class="kw">begin</span>
+        <span class="kw">if</span> (<span class="id">rst</span>)
+            <span class="id">count</span> <= 4'<span class="typ">b</span><span class="num">1111</span>;   <span class="cmt">// often starts at max value for a down counter</span>
+        <span class="kw">else</span>
+            <span class="id">count</span> <= <span class="id">count</span> - 1;
+    <span class="kw">end</span>
+<span class="kw">endmodule</span></pre>
+    </div>
+    <div class="codeblock">
+      <div class="code-head"><span>updown_counter.v — one direction input picks the mode</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">updown_counter</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">clk</span>, <span class="id">rst</span>, <span class="id">up_down</span>,   <span class="cmt">// 1 = count up, 0 = count down</span>
+    <span class="kw">output</span> <span class="typ">reg</span> [3:0] <span class="id">count</span>
+);
+    <span class="kw">always</span> @(<span class="kw">posedge</span> <span class="id">clk</span> <span class="kw">or</span> <span class="kw">posedge</span> <span class="id">rst</span>) <span class="kw">begin</span>
+        <span class="kw">if</span> (<span class="id">rst</span>)
+            <span class="id">count</span> <= 4'<span class="typ">b</span><span class="num">0000</span>;
+        <span class="kw">else</span> <span class="kw">if</span> (<span class="id">up_down</span>)
+            <span class="id">count</span> <= <span class="id">count</span> + 1;
+        <span class="kw">else</span>
+            <span class="id">count</span> <= <span class="id">count</span> - 1;
+    <span class="kw">end</span>
+<span class="kw">endmodule</span></pre>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="counter-param" data-nav="Parameterized counter">
+    <h2>A Parameterized Counter — Any Width, One File</h2>
+    <p>Exactly like Chapter 11's ripple adder, a counter's width shouldn't be hardcoded if you can help it:</p>
+    <div class="codeblock">
+      <div class="code-head"><span>counter_param.v — works for ANY width N</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">counter_param</span> #(
+    <span class="kw">parameter</span> <span class="id">N</span> = 4
+) (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">clk</span>, <span class="id">rst</span>,
+    <span class="kw">output</span> <span class="typ">reg</span> [<span class="id">N</span>-1:0] <span class="id">count</span>
+);
+    <span class="kw">always</span> @(<span class="kw">posedge</span> <span class="id">clk</span> <span class="kw">or</span> <span class="kw">posedge</span> <span class="id">rst</span>) <span class="kw">begin</span>
+        <span class="kw">if</span> (<span class="id">rst</span>)
+            <span class="id">count</span> <= {<span class="id">N</span>{1'<span class="typ">b</span>0}};   <span class="cmt">// replication operator: N zero-bits, whatever N is</span>
+        <span class="kw">else</span>
+            <span class="id">count</span> <= <span class="id">count</span> + 1;
+    <span class="kw">end</span>
+<span class="kw">endmodule</span></pre>
+    </div>
+    <p class="dim">New trick: <code>{N{1'b0}}</code> is the <b>replication operator</b> — it repeats <code>1'b0</code> exactly <code>N</code> times, giving an all-zero reset value of exactly the right width no matter what <code>N</code> is set to.</p>
+  </section>
+
+  <section class="chapter-section" id="counter-testbench" data-nav="Counter testbench">
+    <h2>Counter Testbench</h2>
+    <div class="codeblock">
+      <div class="code-head"><span>counter_up_tb.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">counter_up_tb</span>;
+    <span class="typ">reg</span> <span class="id">clk</span> = 0, <span class="id">rst</span> = 1;
+    <span class="typ">wire</span> [3:0] <span class="id">count</span>;
+
+    <span class="id">counter_up</span> <span class="id">uut</span> (.<span class="id">clk</span>(<span class="id">clk</span>), .<span class="id">rst</span>(<span class="id">rst</span>), .<span class="id">count</span>(<span class="id">count</span>));
+
+    <span class="kw">always</span> #5 <span class="id">clk</span> = ~<span class="id">clk</span>;
+
+    <span class="kw">initial</span> <span class="kw">begin</span>
+        #12 <span class="id">rst</span> = 0;   <span class="cmt">// release reset after first edge, then let it free-run</span>
+        #200 <span class="kw">$finish</span>;  <span class="cmt">// let it run through more than one full wraparound (16 counts)</span>
+    <span class="kw">end</span>
+
+    <span class="kw">initial</span> <span class="kw">$monitor</span>(<span class="str">"t=%0t rst=%b count=%0d"</span>, <span class="kw">$time</span>, <span class="id">rst</span>, <span class="id">count</span>);
+<span class="kw">endmodule</span></pre>
+    </div>
+    <p>Expected behavior: <code>count</code> stays at 0 while <code>rst</code> is high, then increments by 1 every clock edge — 0,1,2,...,14,15,0,1,... — cleanly wrapping back to 0 after 15, with no glitches, exactly matching the 4-bit overflow behavior from Chapter 16.</p>
+  </section>
+
+  <section class="chapter-section" id="shift-registers" data-nav="Shift Registers">
+    <h2>Shift Registers</h2>
+    <p>A shift register is a chain of flip-flops where each one passes its value to the next on every clock edge — data "shifts" down the chain, one position per cycle. There are four common flavors, named by how data enters and leaves:</p>
+    <table>
+      <thead><tr><th>Type</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td>SISO</td><td>Serial In, Serial Out — one bit in, one bit out, each clock cycle</td></tr>
+        <tr><td>SIPO</td><td>Serial In, Parallel Out — bits enter one at a time, but the whole register can be read at once</td></tr>
+        <tr><td>PISO</td><td>Parallel In, Serial Out — load all bits at once, then shift them out one at a time</td></tr>
+        <tr><td>PIPO</td><td>Parallel In, Parallel Out — effectively just a plain multi-bit register</td></tr>
+      </tbody>
+    </table>
+    <div class="codeblock">
+      <div class="code-head"><span>sipo_shift_reg.v — Serial-In, Parallel-Out, 4-bit</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">sipo_shift_reg</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">clk</span>, <span class="id">rst</span>, <span class="id">serial_in</span>,
+    <span class="kw">output</span> <span class="typ">reg</span> [3:0] <span class="id">parallel_out</span>
+);
+    <span class="kw">always</span> @(<span class="kw">posedge</span> <span class="id">clk</span> <span class="kw">or</span> <span class="kw">posedge</span> <span class="id">rst</span>) <span class="kw">begin</span>
+        <span class="kw">if</span> (<span class="id">rst</span>)
+            <span class="id">parallel_out</span> <= 4'<span class="typ">b</span><span class="num">0000</span>;
+        <span class="kw">else</span>
+            <span class="id">parallel_out</span> <= {<span class="id">parallel_out</span>[2:0], <span class="id">serial_in</span>};  <span class="cmt">// shift left; new bit enters at LSB</span>
+    <span class="kw">end</span>
+<span class="kw">endmodule</span></pre>
+    </div>
+    <p>The concatenation <code>{parallel_out[2:0], serial_in}</code> takes the <b>lower 3 bits</b> of the current value and appends the new incoming bit at the end — which is exactly a "shift left, insert at the bottom" operation, expressed in a single line.</p>
+    <div class="codeblock">
+      <div class="code-head"><span>sipo_shift_reg_tb.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">sipo_shift_reg_tb</span>;
+    <span class="typ">reg</span> <span class="id">clk</span> = 0, <span class="id">rst</span> = 1, <span class="id">serial_in</span> = 0;
+    <span class="typ">wire</span> [3:0] <span class="id">parallel_out</span>;
+
+    <span class="id">sipo_shift_reg</span> <span class="id">uut</span> (.<span class="id">clk</span>(<span class="id">clk</span>), .<span class="id">rst</span>(<span class="id">rst</span>), .<span class="id">serial_in</span>(<span class="id">serial_in</span>), .<span class="id">parallel_out</span>(<span class="id">parallel_out</span>));
+
+    <span class="kw">always</span> #5 <span class="id">clk</span> = ~<span class="id">clk</span>;
+
+    <span class="kw">initial</span> <span class="kw">begin</span>
+        #12 <span class="id">rst</span> = 0;
+
+        <span class="cmt">// feed in the bit pattern 1,0,1,1 one bit per clock edge</span>
+        <span class="id">serial_in</span> = 1; #10;
+        <span class="id">serial_in</span> = 0; #10;
+        <span class="id">serial_in</span> = 1; #10;
+        <span class="id">serial_in</span> = 1; #10;
+
+        #10 <span class="kw">$finish</span>;
+    <span class="kw">end</span>
+
+    <span class="kw">initial</span> <span class="kw">$monitor</span>(<span class="str">"t=%0t serial_in=%b -> parallel_out=%b"</span>, <span class="kw">$time</span>, <span class="id">serial_in</span>, <span class="id">parallel_out</span>);
+<span class="kw">endmodule</span></pre>
+    </div>
+    <p>After feeding in <code>1, 0, 1, 1</code> (one bit per clock edge), <code>parallel_out</code> should read <code>1011</code> — the exact bit sequence that went in, now sitting fully assembled and readable all at once, which is the entire point of a SIPO register.</p>
+  </section>
+
+  <section class="chapter-section" id="common-mistakes" data-nav="Common mistakes">
+    <h2>Common Mistakes</h2>
+    <ul>
+      <li>Forgetting that <code>count + 1</code> silently wraps on overflow — if your design actually needs to detect the wraparound (e.g., to trigger something else), you must explicitly check for it, like <code>if (count == 4'b1111)</code>.</li>
+      <li>Off-by-one errors in shift direction — mixing up which end of the concatenation is the "new" bit versus the "shifted-out" bit.</li>
+      <li>Forgetting the reset value for a down counter should usually start at the maximum value, not 0.</li>
+      <li>Using <code>=</code> instead of <code>&lt;=</code> in these clocked blocks (Chapter 13) — a persistent, easy-to-miss bug even for experienced beginners.</li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="summary" data-nav="Summary & exercises">
+    <h2>Summary</h2>
+    <p>A counter is simply a register that adds (or subtracts) 1 from itself every clock edge, naturally wrapping around on overflow. A parameterized version reuses the same code for any bit width, using the replication operator (<code>{N{1'b0}}</code>) for a correctly-sized reset value. A shift register moves data one position per clock edge, with SISO/SIPO/PISO/PIPO describing how data enters and leaves — a SIPO register is built with one concise concatenation-based non-blocking assignment.</p>
+  </section>
+
+  <section class="chapter-section" id="interview-questions" data-nav="Interview questions">
+    <h2>Interview Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>What happens when a 4-bit up counter reaches 15 and increments again?</summary><div class="answer">It wraps around to 0 automatically, since the arithmetic overflow bit simply falls off the top of the 4-bit result, exactly like the ripple-adder overflow case from Chapter 16.</div></details></li>
+      <li><details class="qa"><summary>What is the difference between SIPO and PISO shift registers?</summary><div class="answer">SIPO (Serial-In, Parallel-Out) accepts data one bit per clock cycle but allows reading the entire register at once. PISO (Parallel-In, Serial-Out) loads all bits simultaneously but outputs them one bit at a time on subsequent clock cycles.</div></details></li>
+      <li><details class="qa"><summary>What does the replication operator {N{1'b0}} do?</summary><div class="answer">It repeats the value 1'b0 exactly N times, producing an all-zero bus of width N — useful for writing width-independent reset values in parameterized modules.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="viva-questions" data-nav="Viva questions">
+    <h2>Viva Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>What line of code performs the "shift" in sipo_shift_reg?</summary><div class="answer">parallel_out <= {parallel_out[2:0], serial_in};</div></details></li>
+      <li><details class="qa"><summary>Which input controls direction in updown_counter?</summary><div class="answer">up_down — 1 counts up, 0 counts down.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="exercises" data-nav="Exercises">
+    <h2>Exercises</h2>
+    <p>1. Add a `max_count` output to counter_up that pulses HIGH for exactly one cycle when count reaches 4'b1111. 2. Build a PISO (Parallel-In, Serial-Out) shift register with a `load` control input. 3. Instantiate counter_param at widths 4 and 8, and verify (via testbench) each wraps around at the correct value (15 and 255 respectively).</p>
+  </section>
+
+  <div class="footer-nav">
+    <a href="chapter-20.html"><span class="lbl">← BACK</span>Flip-Flops (SR, D, JK, T)</a>
+    <a href="chapter-22.html" class="next"><span class="lbl">NEXT</span>Mini Projects: Traffic Light, LED Blinker, Digital Lock</a>
+  </div>
+
+</article>
+</div>
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">↑</button>
+
+<script>window.CURRENT_CHAPTER_ID = "ch-21";</script>
+<script src="shared/nav.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => { const t = document.getElementById("reading-time"); const t2 = document.getElementById("reading-time-2"); if(t && t2){ const obs = new MutationObserver(()=>{ t2.textContent = t.textContent; }); obs.observe(t, {childList:true}); } });</script>
+</body>
+</html>
