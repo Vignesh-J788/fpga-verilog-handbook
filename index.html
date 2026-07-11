@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FPGA & Verilog HDL Workshop Handbook</title>
+<link rel="stylesheet" href="shared/styles.css">
+<style>
+  .hero{ min-height: 100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding: 110px 20px 60px; position:relative; }
+  .hero-chip-wrap{ width:min(560px, 88vw); margin-bottom: 26px; }
+  .hero-eyebrow{ font-family: var(--font-mono); color: var(--sig-cyan); font-size:13px; letter-spacing:.14em; text-transform:uppercase; }
+  .hero h1{ font-size: clamp(2rem, 5vw, 3.4rem); font-weight:800; letter-spacing:-.02em; margin:.35em 0 .25em; max-width:16ch; }
+  .hero h1 span{ color: var(--sig-blue); }
+  .hero p.sub{ color: var(--ink-dim); font-size:1.15rem; max-width:52ch; }
+  .cta-row{ margin-top:34px; display:flex; gap:14px; flex-wrap:wrap; justify-content:center; }
+  .btn{ padding:14px 26px; border-radius:9px; font-weight:600; font-size:14.5px; font-family:var(--font-sans); }
+  .btn-primary{ background: linear-gradient(135deg, var(--sig-blue), var(--sig-cyan)); color:#04101d; border:none; box-shadow:0 12px 30px -10px rgba(59,130,246,.6); }
+  .btn-ghost{ background: var(--sheet-raised); color:var(--ink); border:1px solid var(--line); }
+  .btn:hover{ text-decoration:none; filter:brightness(1.08); }
+
+  .roadmap{ max-width: 1000px; margin: 0 auto; padding: 20px 20px 120px; }
+  .roadmap h2{ text-align:center; font-size:1.6rem; margin-bottom:6px; }
+  .roadmap .lead{ text-align:center; color:var(--ink-dim); max-width:60ch; margin:0 auto 40px; }
+  .part-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(270px,1fr)); gap:16px; }
+  .part-card{ background: var(--sheet); border:1px solid var(--line); border-radius:12px; padding:20px 22px; }
+  .part-card h3{ margin:0 0 10px; font-size:1rem; color:var(--sig-cyan); }
+  .part-card ul{ margin:0; padding-left:18px; color:var(--ink-dim); font-size:13.5px; line-height:1.8; }
+  .part-card.active{ border-color: rgba(59,130,246,.4); box-shadow:0 0 0 1px rgba(59,130,246,.12) inset; }
+  .status-pill{ display:inline-block; font-family:var(--font-mono); font-size:10px; padding:2px 8px; border-radius:20px; border:1px solid var(--line); color:var(--ink-faint); margin-left:8px; vertical-align:middle; }
+  .status-pill.ready{ color: var(--sig-green); border-color: rgba(52,211,153,.4); }
+</style>
+</head>
+<body>
+<div class="board-grid"></div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Open chapter menu"><span></span><span></span><span></span></button>
+  <div class="topbar-title"><b>FPGA & Verilog Handbook</b> · Home</div>
+</div>
+<div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+
+<!-- SIDEBAR -->
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="logo">◈ FPGA & VERILOG HANDBOOK</div>
+    <div class="tag">From absolute zero to a working FPGA board</div>
+  </div>
+  <div class="sidebar-search">
+    <input type="text" id="sidebar-search-input" placeholder="Search chapters...">
+  </div>
+  <div class="sidebar-group" id="sidebar-list"></div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-chip-wrap">
+    <svg viewBox="0 0 560 340" width="100%" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="chipGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#16202c"/>
+          <stop offset="100%" stop-color="#0c141d"/>
+        </linearGradient>
+      </defs>
+      <!-- traces -->
+      <g stroke="#1e2836" stroke-width="2" fill="none">
+        <path id="t1" d="M280,150 L280,40 L120,40"/>
+        <path id="t2" d="M280,150 L280,20 L440,20"/>
+        <path id="t3" d="M240,120 L60,120 L60,90"/>
+        <path id="t4" d="M240,190 L40,190 L40,240"/>
+        <path id="t5" d="M320,120 L520,120 L520,70"/>
+        <path id="t6" d="M320,190 L500,190 L500,260"/>
+        <path id="t7" d="M260,220 L260,300 L150,300"/>
+        <path id="t8" d="M300,220 L300,320 L420,320"/>
+      </g>
+      <!-- pulsing signal dots traveling along traces -->
+      <g fill="#22d3ee">
+        <circle r="3.4"><animateMotion dur="3.4s" repeatCount="indefinite" path="M280,150 L280,40 L120,40"/></circle>
+        <circle r="3.4"><animateMotion dur="2.6s" repeatCount="indefinite" begin=".4s" path="M280,150 L280,20 L440,20"/></circle>
+        <circle r="3.4" fill="#3b82f6"><animateMotion dur="3s" repeatCount="indefinite" begin=".8s" path="M240,120 L60,120 L60,90"/></circle>
+        <circle r="3.4" fill="#3b82f6"><animateMotion dur="3.8s" repeatCount="indefinite" begin="1.2s" path="M240,190 L40,190 L40,240"/></circle>
+        <circle r="3.4"><animateMotion dur="2.9s" repeatCount="indefinite" begin=".2s" path="M320,120 L520,120 L520,70"/></circle>
+        <circle r="3.4" fill="#f5a524"><animateMotion dur="3.3s" repeatCount="indefinite" begin="1.5s" path="M320,190 L500,190 L500,260"/></circle>
+        <circle r="3.4" fill="#3b82f6"><animateMotion dur="3.1s" repeatCount="indefinite" begin=".6s" path="M260,220 L260,300 L150,300"/></circle>
+        <circle r="3.4"><animateMotion dur="2.7s" repeatCount="indefinite" begin="1s" path="M300,220 L300,320 L420,320"/></circle>
+      </g>
+      <!-- chip body -->
+      <rect x="230" y="115" width="100" height="110" rx="8" fill="url(#chipGrad)" stroke="#2a3a4d" stroke-width="1.5"/>
+      <!-- chip pins -->
+      <g fill="#2a3a4d">
+        <rect x="238" y="108" width="8" height="10"/><rect x="258" y="108" width="8" height="10"/><rect x="278" y="108" width="8" height="10"/><rect x="298" y="108" width="8" height="10"/><rect x="318" y="108" width="8" height="10"/>
+        <rect x="238" y="227" width="8" height="10"/><rect x="258" y="227" width="8" height="10"/><rect x="278" y="227" width="8" height="10"/><rect x="298" y="227" width="8" height="10"/><rect x="318" y="227" width="8" height="10"/>
+      </g>
+      <text x="280" y="176" text-anchor="middle" font-family="ui-monospace,monospace" font-size="13" fill="#93a4b8">FPGA</text>
+    </svg>
+  </div>
+
+  <div class="hero-eyebrow">A Complete, Beginner-Safe Documentation Handbook</div>
+  <h1>FPGA & Verilog HDL <span>Workshop Handbook</span></h1>
+  <p class="sub">From Absolute Beginner to FPGA Programming — explained the way you'd explain it to a curious 10-year-old, deep enough to survive a placement interview.</p>
+  <div class="cta-row">
+    <a class="btn btn-primary" href="chapter-01.html">Start Reading →</a>
+    <a class="btn btn-ghost" href="#roadmap">See the Full Roadmap</a>
+  </div>
+</section>
+
+<!-- ROADMAP -->
+<section class="roadmap" id="roadmap">
+  <h2>The Whole Journey, Mapped Out</h2>
+  <p class="lead">This handbook is being built chapter by chapter, in the order you'd actually want to learn it — starting from electricity itself, and ending with you holding a programmed board.</p>
+  <div class="part-grid">
+    <div class="part-card active">
+      <h3>Part 1 · Digital Electronics Foundations <span class="status-pill ready">Complete</span></h3>
+      <ul>
+        <li>Electricity, voltage, current & number systems</li>
+        <li>Logic levels, logic gates, Boolean algebra</li>
+        <li>DeMorgan's theorem & Karnaugh maps</li>
+        <li>Combinational circuits</li>
+        <li>Sequential circuits</li>
+      </ul>
+    </div>
+    <div class="part-card active">
+      <h3>Part 2 · FPGA World <span class="status-pill ready">Complete</span></h3>
+      <ul>
+        <li>What is an FPGA? History & applications</li>
+        <li>Internal architecture: LUTs, CLBs, routing</li>
+        <li>FPGA vs Arduino vs ESP32 vs Raspberry Pi</li>
+      </ul>
+    </div>
+    <div class="part-card active">
+      <h3>Part 3 · Verilog HDL From Zero <span class="status-pill ready">Complete</span></h3>
+      <ul>
+        <li>module, wire, reg, assign, always, initial</li>
+        <li>if/case/loops/generate/parameters</li>
+        <li>Tasks, functions, testbenches, simulation</li>
+        <li>Blocking vs non-blocking, synthesis vs RTL</li>
+      </ul>
+    </div>
+    <div class="part-card active">
+      <h3>Part 4 · Modeling Styles <span class="status-pill ready">Complete</span></h3>
+      <ul><li>Gate-level vs dataflow vs behavioral, side by side</li></ul>
+    </div>
+    <div class="part-card active">
+      <h3>Part 5 · Verilog Programs <span class="status-pill ready">Complete</span></h3>
+      <ul>
+        <li>Gates, adders, MUX/DEMUX, encoders/decoders</li>
+        <li>Flip-flops, counters, shift registers</li>
+        <li>Traffic light, digital lock, stopwatch, calculator, PWM LED</li>
+      </ul>
+    </div>
+    <div class="part-card active">
+      <h3>Part 6 · Vivado & Hardware <span class="status-pill ready">Complete</span></h3>
+      <ul>
+        <li>Project → bitstream → board, step by step</li>
+        <li>Debugging & common errors</li>
+        <li>The FPGA board, every part labelled</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">↑</button>
+
+<script>window.CURRENT_CHAPTER_ID = "home";</script>
+<script src="shared/nav.js"></script>
+</body>
+</html>
