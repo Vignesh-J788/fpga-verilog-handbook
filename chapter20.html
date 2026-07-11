@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 20 · Flip-Flops (SR, D, JK, T) — FPGA & Verilog Handbook</title>
+<link rel="stylesheet" href="shared/styles.css">
+<style>
+  .blockbox{ fill:#141b26; stroke:#3b82f6; stroke-width:2; }
+  .blocklbl{ fill:#dbe6f0; font-family:ui-monospace,monospace; font-size:13px; }
+  .pinlbl{ fill:#93a4b8; font-family:ui-monospace,monospace; font-size:11.5px; }
+  .wire{ stroke:#93a4b8; stroke-width:2; fill:none; }
+</style>
+</head>
+<body>
+<div class="board-grid"></div>
+
+<div class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Open chapter menu"><span></span><span></span><span></span></button>
+  <div class="topbar-title"><b>Chapter 20</b> · Flip-Flops (SR, D, JK, T)</div>
+  <div class="topbar-right"><span id="reading-time" class="dim" style="font-family:var(--font-mono);font-size:12px;"></span></div>
+</div>
+<div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="logo">◈ FPGA & VERILOG HANDBOOK</div>
+    <div class="tag">From absolute zero to a working FPGA board</div>
+  </div>
+  <div class="sidebar-search"><input type="text" id="sidebar-search-input" placeholder="Search chapters..."></div>
+  <div class="sidebar-group" id="sidebar-list"></div>
+</nav>
+
+<div class="page-wrap">
+<article class="sheet">
+
+  <div class="eyebrow">Part 5 · Verilog Programs — Chapter 20</div>
+  <h1 class="h-title">Flip-Flops: SR, D, JK, T</h1>
+  <p class="h-sub">Chapter 5 promised full Verilog for all four flip-flop types. Here they are — plus the async-reset pattern every real design needs, and your first testbench with a real clock generator.</p>
+  <div class="meta-row"><span>📖 Beginner Level</span><span>🕐 <span id="reading-time-2">—</span></span><span>🧩 7 sections</span></div>
+
+  <section class="chapter-section" id="recap" data-nav="Quick recap">
+    <h2>Quick Recap (Full Theory in Chapter 5)</h2>
+    <table>
+      <thead><tr><th>Type</th><th>Behavior</th></tr></thead>
+      <tbody>
+        <tr><td>SR</td><td>Set / Reset / Hold; S=R=1 forbidden</td></tr>
+        <tr><td>D</td><td>Q simply copies D at the clock edge</td></tr>
+        <tr><td>JK</td><td>Like SR, but J=K=1 toggles instead of forbidden</td></tr>
+        <tr><td>T</td><td>Toggles when T=1, holds when T=0</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="chapter-section" id="sr-ff" data-nav="SR Flip-Flop">
+    <h2>SR Flip-Flop</h2>
+    <div class="codeblock">
+      <div class="code-head"><span>sr_ff.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">sr_ff</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">clk</span>, <span class="id">s</span>, <span class="id">r</span>,
+    <span class="kw">output</span> <span class="typ">reg</span>  <span class="id">q</span>
+);
+    <span class="kw">always</span> @(<span class="kw">posedge</span> <span class="id">clk</span>) <span class="kw">begin</span>
+        <span class="kw">case</span> ({<span class="id">s</span>, <span class="id">r</span>})
+            2'<span class="typ">b</span><span class="num">00</span>: <span class="id">q</span> <= <span class="id">q</span>;     <span class="cmt">// hold</span>
+            2'<span class="typ">b</span><span class="num">01</span>: <span class="id">q</span> <= 1'<span class="typ">b</span>0;   <span class="cmt">// reset</span>
+            2'<span class="typ">b</span><span class="num">10</span>: <span class="id">q</span> <= 1'<span class="typ">b</span>1;   <span class="cmt">// set</span>
+            2'<span class="typ">b</span><span class="num">11</span>: <span class="id">q</span> <= 1'<span class="typ">b</span>x;   <span class="cmt">// forbidden -> explicitly modeled as unknown</span>
+        <span class="kw">endcase</span>
+    <span class="kw">end</span>
+<span class="kw">endmodule</span></pre>
+    </div>
+    <p>Notice we explicitly write <code>1'bx</code> (an unknown value) for the forbidden case, rather than silently picking some arbitrary behavior — this makes the danger visible in simulation instead of hiding it.</p>
+  </section>
+
+  <section class="chapter-section" id="d-ff" data-nav="D Flip-Flop (with async reset)">
+    <h2>D Flip-Flop — Now With a Real-World Reset</h2>
+    <p>Chapter 10 already gave you the basic D flip-flop. Every real design also needs a <b>reset</b> — a way to force known starting values into memory when the board powers on. Here's the industry-standard pattern, an <b>asynchronous</b> active-high reset:</p>
+    <div class="codeblock">
+      <div class="code-head"><span>d_ff_reset.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">d_ff_reset</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">clk</span>, <span class="id">rst</span>, <span class="id">d</span>,
+    <span class="kw">output</span> <span class="typ">reg</span>  <span class="id">q</span>
+);
+    <span class="kw">always</span> @(<span class="kw">posedge</span> <span class="id">clk</span> <span class="kw">or</span> <span class="kw">posedge</span> <span class="id">rst</span>) <span class="kw">begin</span>
+        <span class="kw">if</span> (<span class="id">rst</span>)
+            <span class="id">q</span> <= 1'<span class="typ">b</span>0;   <span class="cmt">// reset wins immediately, regardless of clk</span>
+        <span class="kw">else</span>
+            <span class="id">q</span> <= <span class="id">d</span>;      <span class="cmt">// normal D flip-flop behavior</span>
+    <span class="kw">end</span>
+<span class="kw">endmodule</span></pre>
+    </div>
+    <div class="callout warn">
+      <div class="callout-title">Why <code>rst</code> is inside the sensitivity list too</div>
+      Listing <code>posedge rst</code> alongside <code>posedge clk</code> means this block also runs the instant <code>rst</code> rises — <b>without waiting for a clock edge</b>. This is exactly what "asynchronous" reset means: it can force <code>q</code> to 0 immediately, at any time, clock or no clock. A <b>synchronous</b> reset instead only checks <code>rst</code> inside a <code>posedge clk</code>-only block — it would wait for the next clock edge to take effect. Both are used in real designs; asynchronous reset is simpler to reason about but needs careful timing handling, which Vivado's constraints (Chapter 24) help manage.
+    </div>
+  </section>
+
+  <section class="chapter-section" id="jk-ff" data-nav="JK Flip-Flop">
+    <h2>JK Flip-Flop</h2>
+    <div class="codeblock">
+      <div class="code-head"><span>jk_ff.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">jk_ff</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">clk</span>, <span class="id">j</span>, <span class="id">k</span>,
+    <span class="kw">output</span> <span class="typ">reg</span>  <span class="id">q</span>
+);
+    <span class="kw">always</span> @(<span class="kw">posedge</span> <span class="id">clk</span>) <span class="kw">begin</span>
+        <span class="kw">case</span> ({<span class="id">j</span>, <span class="id">k</span>})
+            2'<span class="typ">b</span><span class="num">00</span>: <span class="id">q</span> <= <span class="id">q</span>;     <span class="cmt">// hold</span>
+            2'<span class="typ">b</span><span class="num">01</span>: <span class="id">q</span> <= 1'<span class="typ">b</span>0;   <span class="cmt">// reset</span>
+            2'<span class="typ">b</span><span class="num">10</span>: <span class="id">q</span> <= 1'<span class="typ">b</span>1;   <span class="cmt">// set</span>
+            2'<span class="typ">b</span><span class="num">11</span>: <span class="id">q</span> <= ~<span class="id">q</span>;    <span class="cmt">// TOGGLE -- this is JK's fix for SR's forbidden case</span>
+        <span class="kw">endcase</span>
+    <span class="kw">end</span>
+<span class="kw">endmodule</span></pre>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="t-ff" data-nav="T Flip-Flop">
+    <h2>T Flip-Flop</h2>
+    <div class="codeblock">
+      <div class="code-head"><span>t_ff.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">t_ff</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">clk</span>, <span class="id">t</span>,
+    <span class="kw">output</span> <span class="typ">reg</span>  <span class="id">q</span>
+);
+    <span class="kw">always</span> @(<span class="kw">posedge</span> <span class="id">clk</span>) <span class="kw">begin</span>
+        <span class="kw">if</span> (<span class="id">t</span>)
+            <span class="id">q</span> <= ~<span class="id">q</span>;   <span class="cmt">// toggle</span>
+        <span class="kw">else</span>
+            <span class="id">q</span> <= <span class="id">q</span>;    <span class="cmt">// hold</span>
+    <span class="kw">end</span>
+<span class="kw">endmodule</span></pre>
+    </div>
+    <div class="callout good">
+      <div class="callout-title">A neat structural insight</div>
+      A T flip-flop can also be built structurally from a D flip-flop, by feeding <code>d_ff</code>'s <code>d</code> input with <code>t ^ q</code> (its own output, XORed with T): if T=0, <code>d = 0^q = q</code> (holds); if T=1, <code>d = 1^q = ~q</code> (toggles). This is exactly why T flip-flops are the natural building block for counters (Chapter 21) — each bit simply "wants to toggle."
+    </div>
+  </section>
+
+  <section class="chapter-section" id="testbench" data-nav="Combined testbench with clock generator">
+    <h2>A Combined Testbench — With Your First Real Clock Generator</h2>
+    <p>Every testbench so far has manually stepped through values with <code>#10</code>. For clocked circuits, it's far more natural to generate a free-running clock once, and just drive the other inputs against it:</p>
+    <div class="codeblock">
+      <div class="code-head"><span>flipflops_tb.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">flipflops_tb</span>;
+    <span class="typ">reg</span> <span class="id">clk</span> = 0, <span class="id">rst</span> = 0, <span class="id">d</span> = 0, <span class="id">j</span> = 0, <span class="id">k</span> = 0, <span class="id">t</span> = 0;
+    <span class="typ">wire</span> <span class="id">q_d</span>, <span class="id">q_jk</span>, <span class="id">q_t</span>;
+
+    <span class="cmt">// free-running clock: flips every 5 time units -> 10-unit period</span>
+    <span class="kw">always</span> #5 <span class="id">clk</span> = ~<span class="id">clk</span>;
+
+    <span class="id">d_ff_reset</span> <span class="id">dut_d</span>  (.<span class="id">clk</span>(<span class="id">clk</span>), .<span class="id">rst</span>(<span class="id">rst</span>), .<span class="id">d</span>(<span class="id">d</span>), .<span class="id">q</span>(<span class="id">q_d</span>));
+    <span class="id">jk_ff</span>      <span class="id">dut_jk</span> (.<span class="id">clk</span>(<span class="id">clk</span>), .<span class="id">j</span>(<span class="id">j</span>), .<span class="id">k</span>(<span class="id">k</span>), .<span class="id">q</span>(<span class="id">q_jk</span>));
+    <span class="id">t_ff</span>       <span class="id">dut_t</span>  (.<span class="id">clk</span>(<span class="id">clk</span>), .<span class="id">t</span>(<span class="id">t</span>), .<span class="id">q</span>(<span class="id">q_t</span>));
+
+    <span class="kw">initial</span> <span class="kw">begin</span>
+        <span class="id">rst</span> = 1; #12 <span class="id">rst</span> = 0;   <span class="cmt">// hold reset through the first clock edge, then release</span>
+
+        <span class="id">d</span> = 1; <span class="id">j</span> = 1; <span class="id">k</span> = 1; <span class="id">t</span> = 1;  <span class="cmt">// J=K=1 -> jk toggles. T=1 -> t toggles every edge.</span>
+        #100;
+        <span class="kw">$finish</span>;
+    <span class="kw">end</span>
+
+    <span class="kw">initial</span> <span class="kw">$monitor</span>(<span class="str">"t=%0t clk=%b rst=%b | q_d=%b q_jk=%b q_t=%b"</span>, <span class="kw">$time</span>, <span class="id">clk</span>, <span class="id">rst</span>, <span class="id">q_d</span>, <span class="id">q_jk</span>, <span class="id">q_t</span>);
+<span class="kw">endmodule</span></pre>
+    </div>
+    <div class="callout">
+      <div class="callout-title">Reading the always #5 clk = ~clk; pattern</div>
+      This tiny <code>always</code> block (no sensitivity list at all — it just keeps re-triggering itself) is the standard way to generate a free-running clock in simulation: wait 5 time units, flip <code>clk</code>, forever. You'll reuse this exact pattern in every remaining testbench in this handbook.
+    </div>
+    <p>Expected behavior: <code>q_d</code> starts at 0 (held there by reset), then follows <code>d</code> once <code>rst</code> releases. <code>q_jk</code> toggles every clock edge once J=K=1. <code>q_t</code> also toggles every clock edge once T=1 — and if you compare their waveforms, <code>q_jk</code> and <code>q_t</code> should be identical, since both are just "toggle on every edge" in this test.</p>
+  </section>
+
+  <section class="chapter-section" id="common-mistakes" data-nav="Common mistakes">
+    <h2>Common Mistakes</h2>
+    <ul>
+      <li>Using <code>=</code> instead of <code>&lt;=</code> inside any of these clocked blocks — always non-blocking (Chapter 13).</li>
+      <li>Forgetting to include the reset in the sensitivity list for an asynchronous reset design (<code>@(posedge clk or posedge rst)</code>) — omitting it makes the reset synchronous instead, changing its timing behavior.</li>
+      <li>Leaving SR's forbidden state silently unhandled — always make the invalid case explicit (even just to flag it), rather than letting simulation quietly guess.</li>
+      <li>Forgetting to initialize testbench registers (like <code>clk</code>, <code>d</code>) — an uninitialized reg starts as <code>x</code> (unknown) in simulation, which can make early waveform output confusing.</li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="summary" data-nav="Summary & exercises">
+    <h2>Summary</h2>
+    <p>All four flip-flop types share the same <code>always @(posedge clk)</code> skeleton, differing only in their internal case/if logic: SR (set/reset/hold/forbidden), D (simple copy), JK (SR with toggle instead of forbidden), and T (toggle/hold). Real designs add an asynchronous or synchronous reset for known startup behavior. Testbenches for clocked circuits typically use a free-running clock generator (<code>always #5 clk = ~clk;</code>) rather than manually stepping through time.</p>
+  </section>
+
+  <section class="chapter-section" id="interview-questions" data-nav="Interview questions">
+    <h2>Interview Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>What is the difference between synchronous and asynchronous reset in Verilog?</summary><div class="answer">An asynchronous reset appears in the always block's sensitivity list (e.g., `posedge rst`) and takes effect immediately, independent of the clock. A synchronous reset is only checked inside a clock-edge-triggered block, so it only takes effect on the next active clock edge.</div></details></li>
+      <li><details class="qa"><summary>How does a JK flip-flop improve on an SR flip-flop?</summary><div class="answer">It replaces SR's forbidden/undefined S=R=1 case with a well-defined toggle behavior when J=K=1, eliminating the invalid state entirely.</div></details></li>
+      <li><details class="qa"><summary>Why is `always #5 clk = ~clk;` used in testbenches?</summary><div class="answer">It's a compact, standard way to generate a free-running simulation clock, alternating clk every 5 time units to produce a steady clock period, without needing to manually toggle it throughout the stimulus.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="viva-questions" data-nav="Viva questions">
+    <h2>Viva Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>What does a T flip-flop do when T=0?</summary><div class="answer">It holds its current value — no change.</div></details></li>
+      <li><details class="qa"><summary>Which flip-flop simply copies its input to its output on every clock edge?</summary><div class="answer">The D flip-flop.</div></details></li>
+      <li><details class="qa"><summary>What value does the SR flip-flop code assign to q for S=R=1?</summary><div class="answer">1'bx — an explicitly unknown/undefined value.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="exercises" data-nav="Exercises">
+    <h2>Exercises</h2>
+    <p>1. Add a synchronous reset version of the D flip-flop (reset checked only inside `posedge clk`) and compare its waveform against the asynchronous version's. 2. Build a T flip-flop structurally from a D flip-flop plus an XOR gate, as described in the "neat structural insight" callout, and verify it behaves identically to t_ff.v. 3. Extend the combined testbench to also test the SR flip-flop, deliberately hitting the forbidden S=R=1 case and observing the simulated output.</p>
+  </section>
+
+  <div class="footer-nav">
+    <a href="chapter-19.html"><span class="lbl">← BACK</span>Comparator & Seven-Segment Decoder</a>
+    <a href="chapter-21.html" class="next"><span class="lbl">NEXT</span>Counters & Shift Registers</a>
+  </div>
+
+</article>
+</div>
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">↑</button>
+
+<script>window.CURRENT_CHAPTER_ID = "ch-20";</script>
+<script src="shared/nav.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => { const t = document.getElementById("reading-time"); const t2 = document.getElementById("reading-time-2"); if(t && t2){ const obs = new MutationObserver(()=>{ t2.textContent = t.textContent; }); obs.observe(t, {childList:true}); } });</script>
+</body>
+</html>
