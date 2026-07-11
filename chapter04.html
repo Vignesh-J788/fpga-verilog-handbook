@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 4 · Combinational Circuits — FPGA & Verilog Handbook</title>
+<link rel="stylesheet" href="shared/styles.css">
+<style>
+  .blockbox{ fill:#141b26; stroke:#3b82f6; stroke-width:2; }
+  .blocklbl{ fill:#dbe6f0; font-family:ui-monospace,monospace; font-size:13px; }
+  .pinlbl{ fill:#93a4b8; font-family:ui-monospace,monospace; font-size:11.5px; }
+  .wire{ stroke:#93a4b8; stroke-width:2; fill:none; }
+</style>
+</head>
+<body>
+<div class="board-grid"></div>
+
+<div class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Open chapter menu"><span></span><span></span><span></span></button>
+  <div class="topbar-title"><b>Chapter 04</b> · Combinational Circuits</div>
+  <div class="topbar-right"><span id="reading-time" class="dim" style="font-family:var(--font-mono);font-size:12px;"></span></div>
+</div>
+<div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="logo">◈ FPGA & VERILOG HANDBOOK</div>
+    <div class="tag">From absolute zero to a working FPGA board</div>
+  </div>
+  <div class="sidebar-search"><input type="text" id="sidebar-search-input" placeholder="Search chapters..."></div>
+  <div class="sidebar-group" id="sidebar-list"></div>
+</nav>
+
+<div class="page-wrap">
+<article class="sheet">
+
+  <div class="eyebrow">Part 1 · Digital Electronics Foundations — Chapter 04</div>
+  <h1 class="h-title">Combinational Circuits</h1>
+  <p class="h-sub">You now know gates and simplification. This chapter shows what happens when you wire gates together into real, useful building blocks — adders, multiplexers, decoders — the same blocks you'll later write in actual Verilog code in Part 5.</p>
+  <div class="meta-row"><span>📖 Beginner Level</span><span>🕐 <span id="reading-time-2">—</span></span><span>🧩 9 sections</span></div>
+
+  <section class="chapter-section" id="what-is-combinational" data-nav="What makes a circuit 'combinational'?">
+    <h2>What Makes a Circuit "Combinational"?</h2>
+    <p>A <b>combinational circuit</b> is any circuit whose output depends <b>only</b> on the current inputs, at this exact instant — nothing about what happened a second ago matters. Feed it the same inputs a thousand times, in any order, at any time, and you get the exact same output every single time. There is no memory involved anywhere.</p>
+    <div class="analogy-box">
+      <div class="tag">Analogy · A Calculator Button</div>
+      <p style="margin-bottom:0">Press <code>7</code> then <code>+</code> then <code>3</code> on a basic calculator, and it shows <code>10</code>. It doesn't matter if you did this at 9am or 9pm, or if you'd done a completely different calculation five minutes earlier — the answer to 7+3 is always 10, right now, based only on the buttons pressed right now. That's a combinational circuit's entire personality: no history, no memory, just "given this input, right now, here's the output."</p>
+    </div>
+    <p>This is different from a <b>sequential circuit</b> (Chapter 5), where the output can depend on the past — like a counter that remembers what number it was on before increasing it further. We'll draw that contrast properly in the next chapter; for now, just remember: <b>combinational = no memory, purely input → output, instantly.</b></p>
+  </section>
+
+  <section class="chapter-section" id="design-procedure" data-nav="Design procedure">
+    <h2>The Standard Design Procedure</h2>
+    <p>Every combinational circuit in this chapter — and every one you'll ever design — is built using the exact same four-step recipe:</p>
+    <ol>
+      <li><b>Understand the problem</b> and state clearly what output is needed for which input conditions.</li>
+      <li><b>Build the truth table</b> — list every possible input combination and the required output for each.</li>
+      <li><b>Derive the Boolean expression</b> — either directly, or by simplifying with Boolean algebra (Chapter 2) or a Karnaugh Map (Chapter 3).</li>
+      <li><b>Draw the gate-level circuit</b> from the simplified expression.</li>
+    </ol>
+    <p>We'll follow exactly these four steps for the half adder and full adder below, so you can see the whole recipe in action, not just the final answer.</p>
+  </section>
+
+  <section class="chapter-section" id="half-adder" data-nav="Half Adder">
+    <h2>The Half Adder</h2>
+    <p><b>Step 1 — The problem:</b> we want a circuit that adds two single binary digits, A and B, and produces a <code>Sum</code> and a <code>Carry</code> (the "carry" is exactly like the carry-over you learned in primary school addition — when 1+1 makes a 2, which can't fit in one binary digit, so it carries into the next column).</p>
+
+    <p><b>Step 2 — Truth table:</b></p>
+    <table>
+      <thead><tr><th>A</th><th>B</th><th>Sum</th><th>Carry</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+        <tr><td>0</td><td>1</td><td>1</td><td>0</td></tr>
+        <tr><td>1</td><td>0</td><td>1</td><td>0</td></tr>
+        <tr><td>1</td><td>1</td><td>0</td><td>1</td></tr>
+      </tbody>
+    </table>
+
+    <p><b>Step 3 — Boolean expressions:</b> looking at the Sum column, it's 1 exactly when A and B disagree — that's the exact definition of XOR from Chapter 2. The Carry column is 1 only when both are 1 — that's AND.</p>
+    <div class="callout good">
+      <span class="expr" style="font-size:16px;">Sum = A ⊕ B &nbsp;&nbsp;&nbsp; Carry = A · B</span>
+    </div>
+
+    <p><b>Step 4 — Circuit:</b></p>
+    <figure class="diagram">
+      <svg viewBox="0 0 320 180" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <line x1="10" y1="45" x2="60" y2="45" class="wire"/><text x="4" y="40" class="pinlbl">A</text>
+        <line x1="10" y1="125" x2="60" y2="125" class="wire"/><text x="4" y="120" class="pinlbl">B</text>
+        <line x1="10" y1="45" x2="10" y2="45" class="wire"/>
+        <!-- branch to XOR (top) -->
+        <line x1="30" y1="45" x2="30" y2="60" class="wire"/>
+        <line x1="30" y1="125" x2="30" y2="110" class="wire"/>
+        <path d="M60,50 C80,50 100,62 115,75 C100,88 80,100 60,100 C72,88 72,62 60,50 Z" fill="#141b26" stroke="#c792ea" stroke-width="2.5"/>
+        <line x1="30" y1="60" x2="60" y2="60" class="wire"/><line x1="30" y1="110" x2="60" y2="110" class="wire"/>
+        <line x1="115" y1="75" x2="230" y2="75" class="wire"/>
+        <text x="240" y="80" class="pinlbl" fill="#c792ea">Sum</text>
+
+        <!-- branch to AND (bottom) -->
+        <line x1="30" y1="45" x2="30" y2="140" class="wire"/>
+        <line x1="30" y1="125" x2="30" y2="140" class="wire"/>
+        <path d="M60,120 L85,120 A25,25 0 0 1 85,170 L60,170 Z" fill="#141b26" stroke="#3b82f6" stroke-width="2.5"/>
+        <line x1="30" y1="130" x2="60" y2="130" class="wire"/><line x1="30" y1="150" x2="60" y2="150"  class="wire" style="display:none"/>
+        <line x1="30" y1="140" x2="60" y2="140" class="wire"/><line x1="30" y1="160" x2="60" y2="160" class="wire"/>
+        <line x1="110" y1="145" x2="230" y2="145" class="wire"/>
+        <text x="240" y="150" class="pinlbl" fill="#3b82f6">Carry</text>
+      </svg>
+      <figcaption>A and B fan out to one XOR gate (Sum) and one AND gate (Carry) — two gates total.</figcaption>
+    </figure>
+
+    <div class="callout warn">
+      <div class="callout-title">The limitation</div>
+      A half adder can only add two single bits with no incoming carry from a previous column. Real multi-bit addition needs to also accept a carry <i>coming in</i> from the previous column — which is exactly what the <b>full adder</b> fixes.
+    </div>
+  </section>
+
+  <section class="chapter-section" id="full-adder" data-nav="Full Adder">
+    <h2>The Full Adder</h2>
+    <p>A full adder adds <b>three</b> bits: A, B, and <code>Cin</code> (carry-in from the previous column), producing <code>Sum</code> and <code>Cout</code> (carry-out to the next column).</p>
+    <table>
+      <thead><tr><th>A</th><th>B</th><th>Cin</th><th>Sum</th><th>Cout</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+        <tr><td>0</td><td>0</td><td>1</td><td>1</td><td>0</td></tr>
+        <tr><td>0</td><td>1</td><td>0</td><td>1</td><td>0</td></tr>
+        <tr><td>0</td><td>1</td><td>1</td><td>0</td><td>1</td></tr>
+        <tr><td>1</td><td>0</td><td>0</td><td>1</td><td>0</td></tr>
+        <tr><td>1</td><td>0</td><td>1</td><td>0</td><td>1</td></tr>
+        <tr><td>1</td><td>1</td><td>0</td><td>0</td><td>1</td></tr>
+        <tr><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr>
+      </tbody>
+    </table>
+    <div class="callout good">
+      <span class="expr" style="font-size:16px;">Sum = A ⊕ B ⊕ Cin &nbsp;&nbsp;&nbsp; Cout = A·B + B·Cin + A·Cin</span>
+    </div>
+    <p>Here's a lovely shortcut: since <code>A ⊕ B</code> is just the half adder's Sum, and <code>A · B</code> is just its Carry, <b>a full adder can be built from two half adders and one OR gate</b> — no need to redesign from scratch:</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 460 210" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <text x="4" y="34" class="pinlbl">A</text><line x1="20" y1="30" x2="70" y2="30" class="wire"/>
+        <text x="4" y="54" class="pinlbl">B</text><line x1="20" y1="50" x2="70" y2="50" class="wire"/>
+        <rect x="70" y="15" width="90" height="55" rx="6" class="blockbox"/><text x="88" y="47" class="blocklbl">HA 1</text>
+        <line x1="160" y1="30" x2="260" y2="30" class="wire"/>
+        <line x1="160" y1="50" x2="200" y2="50" class="wire"/><line x1="200" y1="50" x2="200" y2="110" class="wire"/><line x1="200" y1="110" x2="70" y2="110" class="wire"/>
+
+        <text x="4" y="120" class="pinlbl">Cin</text><line x1="30" y1="115" x2="70" y2="115" class="wire" style="display:none"/>
+        <line x1="30" y1="118" x2="70" y2="125" class="wire"/>
+        <rect x="70" y="95" width="90" height="55" rx="6" class="blockbox"/><text x="88" y="127" class="blocklbl">HA 2</text>
+        <line x1="160" y1="110" x2="380" y2="110" class="wire"/>
+        <text x="390" y="115" class="pinlbl" fill="#c792ea">Sum</text>
+
+        <line x1="160" y1="130" x2="260" y2="130" class="wire"/>
+        <line x1="260" y1="30" x2="260" y2="55" class="wire"/>
+        <path d="M260,55 C275,55 290,63 300,75 C290,87 275,95 260,95 C268,87 268,63 260,55 Z" fill="#141b26" stroke="#3b82f6" stroke-width="2.5" transform="translate(0,45)"/>
+        <line x1="260" y1="130" x2="260" y2="120" class="wire"/>
+        <line x1="300" y1="120" x2="380" y2="120" class="wire" style="display:none"/>
+        <line x1="300" y1="120" x2="380" y2="75" class="wire" style="display:none"/>
+        <path d="M0,0" />
+        <line x1="300" y1="120" x2="380" y2="170" class="wire"/>
+        <text x="390" y="175" class="pinlbl" fill="#3b82f6">Cout</text>
+      </svg>
+      <figcaption>Full Adder = Half Adder 1 (A,B) → feeds Sum into Half Adder 2 with Cin → the two Carry outputs OR together into Cout</figcaption>
+    </figure>
+
+    <h3>Chaining Full Adders: The Ripple Carry Adder</h3>
+    <p>To add real multi-bit numbers (like two 4-bit numbers), you simply chain full adders side by side, feeding each one's <code>Cout</code> into the next one's <code>Cin</code> — exactly like carrying over digits when you add multi-digit numbers by hand on paper.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 560 140" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <g font-family="ui-monospace,monospace" font-size="12">
+          <rect x="30"  y="30" width="90" height="60" rx="6" class="blockbox"/><text x="50" y="65" class="blocklbl">FA0</text>
+          <rect x="160" y="30" width="90" height="60" rx="6" class="blockbox"/><text x="180" y="65" class="blocklbl">FA1</text>
+          <rect x="290" y="30" width="90" height="60" rx="6" class="blockbox"/><text x="310" y="65" class="blocklbl">FA2</text>
+          <rect x="420" y="30" width="90" height="60" rx="6" class="blockbox"/><text x="440" y="65" class="blocklbl">FA3</text>
+          <line x1="120" y1="70" x2="160" y2="70" class="wire"/><text x="122" y="64" class="pinlbl">Cout→Cin</text>
+          <line x1="250" y1="70" x2="290" y2="70" class="wire"/><text x="252" y="64" class="pinlbl">Cout→Cin</text>
+          <line x1="380" y1="70" x2="420" y2="70" class="wire"/><text x="382" y="64" class="pinlbl">Cout→Cin</text>
+          <text x="0" y="74" class="pinlbl" fill="#f5a524">Cin=0</text>
+          <line x1="510" y1="70" x2="540" y2="70" class="wire"/><text x="512" y="110" class="pinlbl" fill="#3b82f6">Final Cout</text>
+          <text x="50" y="105" class="pinlbl" fill="#c792ea">S0</text><text x="180" y="105" class="pinlbl" fill="#c792ea">S1</text><text x="310" y="105" class="pinlbl" fill="#c792ea">S2</text><text x="440" y="105" class="pinlbl" fill="#c792ea">S3</text>
+        </g>
+      </svg>
+      <figcaption>A 4-bit ripple-carry adder — FA0's Cin is tied to 0 (no carry-in for the very first bit), and each Cout ripples into the next stage's Cin</figcaption>
+    </figure>
+    <div class="callout warn">
+      <div class="callout-title">Why it's called "ripple"</div>
+      Each stage must wait for the carry from the previous stage before it can produce its own final, correct output — the carry "ripples" down the chain one stage at a time. For very wide numbers (32-bit, 64-bit), this delay adds up, which is why faster (and more complex) adder designs like carry-lookahead adders exist in real high-speed processors.
+    </div>
+  </section>
+
+  <section class="chapter-section" id="mux-demux" data-nav="Multiplexer & Demultiplexer">
+    <h2>Multiplexer (MUX) & Demultiplexer (DEMUX)</h2>
+    <div class="analogy-box">
+      <div class="tag">Analogy · The Train Platform Switch</div>
+      <p style="margin-bottom:0">Imagine 4 train tracks (data lines) all merging toward a single platform, but only one track's train is allowed onto the platform at a time. A switch operator (the <b>select lines</b>) decides which one track gets connected through right now. That's a <b>multiplexer</b>: many inputs, one chosen output. A <b>demultiplexer</b> is the exact reverse: one incoming train, and the switch operator decides which one of several outgoing tracks it gets routed onto.</p>
+    </div>
+
+    <div class="grid-2">
+      <figure class="diagram" style="margin:0;">
+        <svg viewBox="0 0 220 190" width="100%" xmlns="http://www.w3.org/2000/svg">
+          <g class="pinlbl">
+            <text x="0" y="24">I0</text><text x="0" y="54">I1</text><text x="0" y="84">I2</text><text x="0" y="114">I3</text>
+          </g>
+          <line x1="18" y1="20" x2="60" y2="35" class="wire"/>
+          <line x1="18" y1="50" x2="60" y2="50" class="wire"/>
+          <line x1="18" y1="80" x2="60" y2="70" class="wire"/>
+          <line x1="18" y1="110" x2="60" y2="85" class="wire"/>
+          <path d="M60,15 L60,105 L100,90 L100,30 Z" fill="#141b26" stroke="#3b82f6" stroke-width="2.5"/>
+          <text x="66" y="65" class="blocklbl" font-size="12">4:1 MUX</text>
+          <line x1="100" y1="60" x2="160" y2="60" class="wire"/>
+          <text x="168" y="65" class="pinlbl" fill="#3b82f6">Y</text>
+          <line x1="80" y1="105" x2="80" y2="150" class="wire"/>
+          <text x="55" y="168" class="pinlbl">S1 S0 (select)</text>
+        </svg>
+        <figcaption>4:1 MUX — 2 select lines choose which of 4 inputs reaches Y</figcaption>
+      </figure>
+      <figure class="diagram" style="margin:0;">
+        <svg viewBox="0 0 220 190" width="100%" xmlns="http://www.w3.org/2000/svg">
+          <text x="0" y="65" class="pinlbl">In</text>
+          <line x1="16" y1="60" x2="60" y2="60" class="wire"/>
+          <path d="M60,15 L100,30 L100,90 L60,105 Z" fill="#141b26" stroke="#f5a524" stroke-width="2.5"/>
+          <text x="65" y="65" class="blocklbl" font-size="12">1:4 DEMUX</text>
+          <line x1="100" y1="30" x2="160" y2="20" class="wire"/><text x="168" y="24" class="pinlbl">O0</text>
+          <line x1="100" y1="50" x2="160" y2="50" class="wire"/><text x="168" y="54" class="pinlbl">O1</text>
+          <line x1="100" y1="70" x2="160" y2="80" class="wire"/><text x="168" y="84" class="pinlbl">O2</text>
+          <line x1="100" y1="90" x2="160" y2="110" class="wire"/><text x="168" y="114" class="pinlbl">O3</text>
+          <line x1="80" y1="105" x2="80" y2="150" class="wire"/>
+          <text x="55" y="168" class="pinlbl">S1 S0 (select)</text>
+        </svg>
+        <figcaption>1:4 DEMUX — 2 select lines choose which of 4 outputs receives the single input</figcaption>
+      </figure>
+    </div>
+    <p>Select lines follow a simple binary counting rule: for a MUX/DEMUX with <b>n</b> select lines, you can choose between <b>2ⁿ</b> data lines. Two select lines (S1,S0) give you 4 choices (00,01,10,11) — matching the 4 data lines shown above. We'll build these fully in Verilog, gate-by-gate, in Chapter 17.</p>
+  </section>
+
+  <section class="chapter-section" id="decoder-encoder" data-nav="Decoder & Encoder">
+    <h2>Decoder & Encoder</h2>
+    <p>A <b>decoder</b> takes an n-bit binary code and activates exactly <i>one</i> of 2ⁿ output lines — the one matching that code. A common example is a <b>2-to-4 decoder</b>: 2 input bits select which single one of 4 output lines turns on.</p>
+    <div class="analogy-box">
+      <div class="tag">Analogy · Hotel Room Key Card</div>
+      <p style="margin-bottom:0">Your key card carries a binary code. The door lock system "decodes" that code and unlocks <i>exactly one</i> door — yours — leaving every other door untouched. That's a decoder: one matching code in, exactly one output activated.</p>
+    </div>
+    <p>An <b>encoder</b> does the reverse job: it looks at several input lines (only one of which is expected to be active at a time) and outputs the binary code representing <i>which</i> input was active. A <b>priority encoder</b> is a smarter version that also handles the case where more than one input is active at once, by picking whichever has the highest "priority" — we cover this in full detail with real Verilog code in Chapter 18.</p>
+
+    <div class="grid-2">
+      <figure class="diagram" style="margin:0;">
+        <svg viewBox="0 0 220 160" width="100%" xmlns="http://www.w3.org/2000/svg">
+          <text x="0" y="45" class="pinlbl">A1</text><line x1="18" y1="40" x2="60" y2="40" class="wire"/>
+          <text x="0" y="85" class="pinlbl">A0</text><line x1="18" y1="80" x2="60" y2="80" class="wire"/>
+          <rect x="60" y="20" width="80" height="80" rx="6" class="blockbox"/><text x="70" y="65" class="blocklbl" font-size="12">2:4 DEC</text>
+          <line x1="140" y1="30" x2="180" y2="30" class="wire"/><text x="184" y="34" class="pinlbl">Y0</text>
+          <line x1="140" y1="50" x2="180" y2="50" class="wire"/><text x="184" y="54" class="pinlbl">Y1</text>
+          <line x1="140" y1="70" x2="180" y2="70" class="wire"/><text x="184" y="74" class="pinlbl">Y2</text>
+          <line x1="140" y1="90" x2="180" y2="90" class="wire"/><text x="184" y="94" class="pinlbl">Y3</text>
+        </svg>
+        <figcaption>2-to-4 Decoder — exactly one Y line goes HIGH, matching the A1A0 code</figcaption>
+      </figure>
+      <figure class="diagram" style="margin:0;">
+        <svg viewBox="0 0 220 160" width="100%" xmlns="http://www.w3.org/2000/svg">
+          <text x="0" y="34" class="pinlbl">Y0</text><line x1="18" y1="30" x2="60" y2="30" class="wire"/>
+          <text x="0" y="54" class="pinlbl">Y1</text><line x1="18" y1="50" x2="60" y2="50" class="wire"/>
+          <text x="0" y="74" class="pinlbl">Y2</text><line x1="18" y1="70" x2="60" y2="70" class="wire"/>
+          <text x="0" y="94" class="pinlbl">Y3</text><line x1="18" y1="90" x2="60" y2="90" class="wire"/>
+          <rect x="60" y="20" width="80" height="80" rx="6" class="blockbox"/><text x="70" y="65" class="blocklbl" font-size="12">4:2 ENC</text>
+          <line x1="140" y1="40" x2="180" y2="40" class="wire"/><text x="184" y="44" class="pinlbl">A1</text>
+          <line x1="140" y1="80" x2="180" y2="80" class="wire"/><text x="184" y="84" class="pinlbl">A0</text>
+        </svg>
+        <figcaption>4-to-2 Encoder — reports the binary code of whichever single input line is active</figcaption>
+      </figure>
+    </div>
+    <p>Finally, a quick preview: a <b>comparator</b> is another common combinational block that takes two binary numbers and reports whether A&gt;B, A=B, or A&lt;B — we build this fully, with cascading multi-bit comparison, in Chapter 19.</p>
+  </section>
+
+  <section class="chapter-section" id="summary" data-nav="Summary & key points">
+    <h2>Summary</h2>
+    <p>A combinational circuit's output depends only on its current inputs, with zero memory of the past. Every design follows the same recipe: state the problem, build the truth table, derive and simplify the Boolean expression, then draw the gate circuit. The half adder (XOR for Sum, AND for Carry) is the simplest building block; the full adder extends it to handle a carry-in, and chaining full adders together (ripple-carry) builds real multi-bit adders. Multiplexers route many inputs to one output; demultiplexers do the reverse; decoders activate exactly one output line matching a binary code; encoders report the code of whichever single input is active.</p>
+    <h3>Key Points</h3>
+    <ul>
+      <li>Combinational = no memory, output = f(current inputs) only.</li>
+      <li>Half Adder: Sum = A⊕B, Carry = A·B.</li>
+      <li>Full Adder: Sum = A⊕B⊕Cin, Cout = AB + BCin + ACin — buildable from 2 half adders + 1 OR gate.</li>
+      <li>n select lines → 2ⁿ choices, for both MUX and DEMUX.</li>
+      <li>Decoder: code in → one-of-many output activated. Encoder: one active input → code out.</li>
+    </ul>
+    <div class="mem-trick"><b>Memory Trick:</b> "Half adder has half the job (no carry-in). Full adder does the FULL job (handles carry-in too)." For MUX/DEMUX: "MUX = Many to One, DEMUX = One to Many."</div>
+  </section>
+
+  <section class="chapter-section" id="practice-questions" data-nav="Practice questions">
+    <h2>Practice Questions</h2>
+    <ol>
+      <li>Derive the Boolean expression for Cout of a full adder directly from its truth table using a K-map.</li>
+      <li>How many select lines are needed for an 8:1 multiplexer?</li>
+      <li>Explain, in your own words, the difference between a decoder and a demultiplexer (hint: think about whether there's a "data" input besides the select lines).</li>
+      <li>Design the truth table for a 3-to-8 decoder (just the pattern, no need to write all 8 rows in full if you understand the rule).</li>
+    </ol>
+  </section>
+
+  <section class="chapter-section" id="interview-questions" data-nav="Interview questions">
+    <h2>Interview Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>Why can't a half adder be used directly for multi-bit addition?</summary><div class="answer">Because it has no Cin input, so it cannot accept a carry from a previous column — only the very first (least significant) bit position could ever use one alone.</div></details></li>
+      <li><details class="qa"><summary>What's the practical drawback of a ripple-carry adder?</summary><div class="answer">Each stage must wait for the previous stage's carry-out before its own output is valid, so total delay grows with the number of bits — this becomes a real speed bottleneck for wide (32/64-bit) adders.</div></details></li>
+      <li><details class="qa"><summary>Differentiate between a decoder and a demultiplexer.</summary><div class="answer">Structurally they're nearly identical, but a decoder has no separate data input — its select lines alone determine which output is activated (usually tied HIGH via an enable). A demultiplexer has an explicit data input that gets routed to the output chosen by the select lines.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="viva-questions" data-nav="Viva questions">
+    <h2>Viva Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>What is the Sum expression for a full adder?</summary><div class="answer">Sum = A ⊕ B ⊕ Cin</div></details></li>
+      <li><details class="qa"><summary>How many outputs does a 2-to-4 decoder have, and how many are active at once?</summary><div class="answer">4 outputs total; exactly 1 is active (HIGH) at any given time.</div></details></li>
+      <li><details class="qa"><summary>What determines how many data lines a MUX can select between?</summary><div class="answer">The number of select lines, n — giving 2ⁿ possible data lines.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="assignments" data-nav="Assignments & answers">
+    <h2>Assignments</h2>
+    <p>1. Draw a complete 4-bit ripple carry adder diagram from memory, labelling every carry connection. 2. Explain why a priority encoder is needed over a plain encoder (think about what happens if two inputs are active simultaneously in a plain encoder). 3. Sketch a real-life system (outside electronics) that behaves like a multiplexer, and one that behaves like a demultiplexer.</p>
+    <details class="qa" style="margin-top:16px;">
+      <summary>Reveal Answers to Practice Questions</summary>
+      <div class="answer">
+        1) K-map on the Cout column (1s at rows 011,101,110,111) groups into AB, BCin, ACin → Cout = AB+BCin+ACin.<br>
+        2) 3 select lines (2³ = 8).<br>
+        3) A decoder has no separate data input — the select/address lines alone decide which single output activates. A demultiplexer explicitly carries one data input value through to whichever output is selected.<br>
+        4) For 3-to-8: exactly one of the 8 outputs is HIGH for each of the 8 possible 3-bit input codes, matching the input's binary value as the output index.
+      </div>
+    </details>
+  </section>
+
+  <div class="footer-nav">
+    <a href="chapter-03.html"><span class="lbl">← BACK</span>DeMorgan's Theorem & Karnaugh Maps</a>
+    <a href="chapter-05.html" class="next"><span class="lbl">NEXT</span>Sequential Circuits</a>
+  </div>
+
+</article>
+</div>
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">↑</button>
+
+<script>window.CURRENT_CHAPTER_ID = "ch-04";</script>
+<script src="shared/nav.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => { const t = document.getElementById("reading-time"); const t2 = document.getElementById("reading-time-2"); if(t && t2){ const obs = new MutationObserver(()=>{ t2.textContent = t.textContent; }); obs.observe(t, {childList:true}); } });</script>
+</body>
+</html>
