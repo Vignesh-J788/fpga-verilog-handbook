@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 25 · Debugging, Reports & Common Errors — FPGA & Verilog Handbook</title>
+<link rel="stylesheet" href="shared/styles.css">
+</head>
+<body>
+<div class="board-grid"></div>
+
+<div class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Open chapter menu"><span></span><span></span><span></span></button>
+  <div class="topbar-title"><b>Chapter 25</b> · Debugging, Reports & Common Errors</div>
+  <div class="topbar-right"><span id="reading-time" class="dim" style="font-family:var(--font-mono);font-size:12px;"></span></div>
+</div>
+<div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="logo">◈ FPGA & VERILOG HANDBOOK</div>
+    <div class="tag">From absolute zero to a working FPGA board</div>
+  </div>
+  <div class="sidebar-search"><input type="text" id="sidebar-search-input" placeholder="Search chapters..."></div>
+  <div class="sidebar-group" id="sidebar-list"></div>
+</nav>
+
+<div class="page-wrap">
+<article class="sheet">
+
+  <div class="eyebrow">Part 6 · Vivado & Hardware — Chapter 25</div>
+  <h1 class="h-title">Debugging, Reports & Common Errors</h1>
+  <p class="h-sub">Every engineer, at every level, spends more time debugging than writing new code. This chapter turns Vivado's reports and error messages from intimidating walls of text into a systematic, learnable skill.</p>
+  <div class="meta-row"><span>📖 Intermediate Level</span><span>🕐 <span id="reading-time-2">—</span></span><span>🧩 6 sections</span></div>
+
+  <section class="chapter-section" id="utilization-report" data-nav="Reading the Utilization Report">
+    <h2>Reading the Utilization Report</h2>
+    <p>After synthesis or implementation (Chapter 24), the Utilization report breaks down exactly which chip resources (Chapter 7) your design consumes:</p>
+    <table>
+      <thead><tr><th>Resource</th><th>What it means if it's unexpectedly high</th></tr></thead>
+      <tbody>
+        <tr><td>LUTs</td><td>Your combinational logic is larger than expected — check for unsimplified Boolean expressions (Chapters 2–3) or accidentally duplicated logic.</td></tr>
+        <tr><td>Flip-Flops (FFs)</td><td>More memory elements than expected — check for unintentionally-inferred latches (Chapter 11), or registers you meant to remove.</td></tr>
+        <tr><td>DSP slices</td><td>Consumed by multiplication/arithmetic (Chapter 7); unexpectedly high usage often means unnecessary multiplies in your design.</td></tr>
+        <tr><td>Block RAM (BRAM)</td><td>Consumed by large memory arrays; watch for accidentally oversized arrays.</td></tr>
+        <tr><td>I/O</td><td>Physical pins used — this is hard-capped by your chip package, unlike the other resources.</td></tr>
+      </tbody>
+    </table>
+    <p>A utilization report near or over 100% for any resource means your design simply won't fit on the target chip — the fix is either a smaller/more efficient design, or a bigger chip.</p>
+  </section>
+
+  <section class="chapter-section" id="timing-report" data-nav="Reading the Timing Report">
+    <h2>Reading the Timing Report</h2>
+    <p>Chapter 13 introduced setup time, hold time, and the critical path conceptually — Vivado's Timing Summary report turns these into concrete numbers for your actual design:</p>
+    <ul>
+      <li><b>WNS (Worst Negative Slack)</b> — the tightest margin anywhere in your design between how much time a path <i>needed</i> and how much it <i>had</i>. A positive WNS means every path met timing; a negative WNS means at least one path was too slow for your declared clock frequency.</li>
+      <li><b>WHS (Worst Hold Slack)</b> — the equivalent check for hold-time violations (Chapter 13), usually caused by paths that are <i>too fast</i> rather than too slow.</li>
+      <li><b>The failing path detail</b> — clicking into a specific failing path shows its exact source, destination, and every delay contributing to it, letting you pinpoint precisely which piece of logic is the bottleneck.</li>
+    </ul>
+    <div class="callout warn">
+      <div class="callout-title">Practical fixes for a negative WNS</div>
+      In order of how often they actually help: (1) simplify or restructure the offending combinational logic to shorten its path, (2) add an extra pipeline register (an additional flip-flop stage) to break one long path into two shorter ones, or (3) as a last resort, lower your declared clock frequency in the XDC file if the design's actual use case allows it.
+    </div>
+  </section>
+
+  <section class="chapter-section" id="common-errors" data-nav="Common error messages, explained">
+    <h2>Common Error & Warning Messages, Explained</h2>
+    <table>
+      <thead><tr><th>Message (paraphrased)</th><th>What it actually means</th><th>Typical fix</th></tr></thead>
+      <tbody>
+        <tr><td>Multiple drivers on net</td><td>Two separate assign statements or always blocks are both trying to drive the same wire — Verilog hardware can't have two things fighting to set one signal's value.</td><td>Ensure exactly one assign/always block drives each signal; combine logic into one block if needed.</td></tr>
+        <tr><td>Latch inferred for signal</td><td>An always block doesn't assign a signal in every possible branch (Chapter 11), so the tool inserted a latch to "remember" its last value.</td><td>Add a default assignment before the case/if, or an explicit default/else branch.</td></tr>
+        <tr><td>Port has no load / unconnected port</td><td>An output port is declared but nothing outside the module reads it, or an input port is declared but never actually driven.</td><td>Check for a typo in the instantiation's port connections, or genuinely unused ports that should be removed.</td></tr>
+        <tr><td>Width mismatch</td><td>A signal of one bit-width is connected to a port or expression of a different width — Verilog will often silently truncate or zero-extend rather than erroring, which can hide real bugs.</td><td>Explicitly match widths, or intentionally slice/extend with a clear comment explaining why.</td></tr>
+        <tr><td>Combinational loop</td><td>A combinational signal's logic path eventually feeds back into its own input with no clocked element breaking the cycle — an unstable, oscillating circuit.</td><td>Insert a register (flip-flop) to break the cycle, or restructure the logic so it isn't self-referential.</td></tr>
+        <tr><td>Clock not found / unconstrained clock</td><td>A clock signal exists in your design but has no matching create_clock constraint in the XDC file, so Vivado can't properly analyze its timing.</td><td>Add a create_clock constraint (Chapter 24) for every actual clock signal in the design.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="chapter-section" id="ila" data-nav="Debugging on real hardware: the ILA">
+    <h2>When Simulation Isn't Enough: The Integrated Logic Analyzer (ILA)</h2>
+    <p>Simulation (Chapter 12) catches most bugs, but some problems only appear on real hardware — genuine electrical noise, mechanical button bounce, or subtle timing effects a simulator's idealized model doesn't capture. For these cases, Vivado provides the <b>Integrated Logic Analyzer (ILA)</b>: a debug core you insert directly into your design, which captures real internal signals, in real time, while your FPGA is actually running — effectively giving you a waveform viewer plugged into the live chip.</p>
+    <div class="callout">
+      <div class="callout-title">The general idea (exact steps vary by Vivado version)</div>
+      You mark the internal signals you want visibility into (often using a <code>mark_debug</code> attribute directly in your Verilog, or through Vivado's Set Up Debug wizard), re-run implementation so the debug core gets built into your bitstream, then use Hardware Manager to trigger captures and view live waveforms of your board's actual internal behavior — the real-world equivalent of everything you've practiced with <code>$monitor</code> and <code>.vcd</code> files since Chapter 12.
+    </div>
+  </section>
+
+  <section class="chapter-section" id="debug-checklist" data-nav="A systematic debugging checklist">
+    <h2>A Systematic Debugging Checklist</h2>
+    <ol>
+      <li>Does it fail in <b>simulation</b>, or only on <b>real hardware</b>? If simulation already fails, the bug is a logic error you can find without ever touching real hardware.</li>
+      <li>Re-check the <b>truth table / expected output</b> you derived by hand (Chapters 2–4) against the simulated waveform, line by line.</li>
+      <li>Search the synthesis log for <b>latch inferred</b> or <b>multiple driver</b> warnings — these are almost always real bugs, not noise, even when the design "seems to work."</li>
+      <li>If it passes simulation but fails on hardware, check the <b>Timing Summary</b> first — a design that's logically correct but violates timing can still misbehave physically.</li>
+      <li>If timing is clean and it still fails on hardware, reach for the <b>ILA</b> to observe the real, physical signal behavior directly.</li>
+    </ol>
+  </section>
+
+  <section class="chapter-section" id="summary" data-nav="Summary & exercises">
+    <h2>Summary</h2>
+    <p>The Utilization report reveals whether your design fits the chip; the Timing Summary (WNS/WHS) reveals whether it runs fast enough. Most Vivado error messages map directly onto concepts already covered — multiple drivers, inferred latches, width mismatches, combinational loops, and unconstrained clocks are all mechanically explainable, not mysterious. When a bug only appears on real hardware, the ILA extends the same waveform-based debugging philosophy from Chapter 12 onto the live, physical chip.</p>
+  </section>
+
+  <section class="chapter-section" id="interview-questions" data-nav="Interview questions">
+    <h2>Interview Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>What does a "multiple drivers" error mean, and how do you fix it?</summary><div class="answer">It means two separate pieces of logic (e.g., two assign statements or always blocks) are both trying to drive the same signal, which is not physically valid. The fix is ensuring exactly one source drives each signal, consolidating logic into a single block if necessary.</div></details></li>
+      <li><details class="qa"><summary>What is the difference between a timing failure caught in simulation versus one caught after implementation?</summary><div class="answer">Simulation generally doesn't model real physical delays and won't reveal timing failures at all — Chapter 12's testbenches check logical correctness, not speed. Timing failures only appear after implementation, once the design has been placed and routed onto real chip resources with real physical delays.</div></details></li>
+      <li><details class="qa"><summary>When would you use an ILA instead of relying on simulation?</summary><div class="answer">When a bug only manifests on real hardware — due to physical effects like electrical noise, mechanical switch bounce, or hardware-specific timing interactions — that an idealized simulator cannot reproduce, requiring direct observation of live signals on the actual chip.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="viva-questions" data-nav="Viva questions">
+    <h2>Viva Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>What does WNS stand for?</summary><div class="answer">Worst Negative Slack.</div></details></li>
+      <li><details class="qa"><summary>What typically causes a "latch inferred" warning?</summary><div class="answer">An always block that doesn't assign a signal in every possible branch, forcing the tool to preserve its previous value with an unintended latch.</div></details></li>
+      <li><details class="qa"><summary>What does ILA stand for?</summary><div class="answer">Integrated Logic Analyzer.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="exercises" data-nav="Exercises">
+    <h2>Exercises</h2>
+    <p>1. Deliberately write a case statement missing a default branch, synthesize it, and find the exact latch-inferred warning in the log. 2. Deliberately drive the same wire from two separate assign statements and observe the multiple-driver error. 3. Take any design from Part 5, add an artificially tight create_clock constraint, and study the resulting failing timing path's report in detail.</p>
+  </section>
+
+  <div class="footer-nav">
+    <a href="chapter-24.html"><span class="lbl">← BACK</span>Vivado From Zero: Project → Bitstream → Board</a>
+    <a href="chapter-26.html" class="next"><span class="lbl">NEXT</span>The FPGA Board, Labelled Completely</a>
+  </div>
+
+</article>
+</div>
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">↑</button>
+
+<script>window.CURRENT_CHAPTER_ID = "ch-25";</script>
+<script src="shared/nav.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => { const t = document.getElementById("reading-time"); const t2 = document.getElementById("reading-time-2"); if(t && t2){ const obs = new MutationObserver(()=>{ t2.textContent = t.textContent; }); obs.observe(t, {childList:true}); } });</script>
+</body>
+</html>
