@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 22 · Mini Projects: Traffic Light, LED Blinker, Digital Lock — FPGA & Verilog Handbook</title>
+<link rel="stylesheet" href="shared/styles.css">
+<style>
+  .state-circle{ fill:#141b26; stroke:#3b82f6; stroke-width:2.5; }
+  .state-circle.active{ stroke:#34d399; }
+  .state-txt{ fill:#dbe6f0; font-family:ui-monospace,monospace; font-size:12px; text-anchor:middle; }
+  .edge-txt{ fill:#93a4b8; font-family:ui-monospace,monospace; font-size:10.5px; }
+  .edge{ stroke:#5b6b80; stroke-width:1.5; fill:none; marker-end:url(#arrow); }
+</style>
+</head>
+<body>
+<div class="board-grid"></div>
+
+<div class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Open chapter menu"><span></span><span></span><span></span></button>
+  <div class="topbar-title"><b>Chapter 22</b> · Mini Projects: Traffic Light, LED Blinker, Digital Lock</div>
+  <div class="topbar-right"><span id="reading-time" class="dim" style="font-family:var(--font-mono);font-size:12px;"></span></div>
+</div>
+<div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="logo">◈ FPGA & VERILOG HANDBOOK</div>
+    <div class="tag">From absolute zero to a working FPGA board</div>
+  </div>
+  <div class="sidebar-search"><input type="text" id="sidebar-search-input" placeholder="Search chapters..."></div>
+  <div class="sidebar-group" id="sidebar-list"></div>
+</nav>
+
+<div class="page-wrap">
+<article class="sheet">
+
+  <div class="eyebrow">Part 5 · Verilog Programs — Chapter 22</div>
+  <h1 class="h-title">Mini Projects: Traffic Light, LED Blinker, Digital Lock</h1>
+  <p class="h-sub">Everything in this handbook converges here. The traffic light finally delivers Chapter 5's Finite State Machine promise, in full, real Verilog.</p>
+  <div class="meta-row"><span>📖 Intermediate Level</span><span>🕐 <span id="reading-time-2">—</span></span><span>🧩 4 sections</span></div>
+
+  <section class="chapter-section" id="led-blinker" data-nav="Project 1: LED Blinker">
+    <h2>Project 1: LED Blinker (Clock Divider)</h2>
+    <p>Here's a problem you'd hit immediately on real hardware: an FPGA's clock typically runs in the tens or hundreds of MHz — far too fast for a human eye to see any blinking at all. To make an LED visibly blink, you must first build a <b>clock divider</b>: a counter (Chapter 21) that only toggles the LED once every many thousands (or millions) of real clock cycles.</p>
+    <div class="codeblock">
+      <div class="code-head"><span>led_blinker.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">led_blinker</span> #(
+    <span class="kw">parameter</span> <span class="id">DIVISOR</span> = 4   <span class="cmt">// small value for simulation; real hardware uses millions</span>
+) (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">clk</span>, <span class="id">rst</span>,
+    <span class="kw">output</span> <span class="typ">reg</span>  <span class="id">led</span>
+);
+    <span class="typ">reg</span> [31:0] <span class="id">count</span>;
+
+    <span class="kw">always</span> @(<span class="kw">posedge</span> <span class="id">clk</span> <span class="kw">or</span> <span class="kw">posedge</span> <span class="id">rst</span>) <span class="kw">begin</span>
+        <span class="kw">if</span> (<span class="id">rst</span>) <span class="kw">begin</span>
+            <span class="id">count</span> <= 0;
+            <span class="id">led</span>   <= 0;
+        <span class="kw">end</span> <span class="kw">else</span> <span class="kw">if</span> (<span class="id">count</span> == <span class="id">DIVISOR</span> - 1) <span class="kw">begin</span>
+            <span class="id">count</span> <= 0;
+            <span class="id">led</span>   <= ~<span class="id">led</span>;   <span class="cmt">// toggle only once every DIVISOR cycles</span>
+        <span class="kw">end</span> <span class="kw">else</span> <span class="kw">begin</span>
+            <span class="id">count</span> <= <span class="id">count</span> + 1;
+        <span class="kw">end</span>
+    <span class="kw">end</span>
+<span class="kw">endmodule</span></pre>
+    </div>
+    <div class="callout">
+      <div class="callout-title">Real-world sizing</div>
+      For a genuine ~1 Hz blink from a 50 MHz board clock, you'd set <code>DIVISOR = 25_000_000</code> (toggling every half-second gives a 1-second full on/off cycle). Simulating 25 million clock edges would be painfully slow, which is exactly why the code above uses a tiny <code>DIVISOR</code> for testbenches — always parameterize this value so simulation and real hardware can use very different numbers.
+    </div>
+  </section>
+
+  <section class="chapter-section" id="traffic-light" data-nav="Project 2: Traffic Light FSM">
+    <h2>Project 2: Traffic Light — Chapter 5's FSM, Delivered</h2>
+    <p>Recall Chapter 5's promise: state + clock + transition rules = a Finite State Machine. A traffic light is always in exactly one of three states, moving to the next one after a timer expires.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 420 200" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#5b6b80"/></marker></defs>
+        <circle cx="70"  cy="100" r="40" class="state-circle active"/><text x="70" y="105" class="state-txt">RED</text>
+        <circle cx="220" cy="45"  r="40" class="state-circle"/><text x="220" y="50" class="state-txt">GREEN</text>
+        <circle cx="350" cy="150" r="40" class="state-circle"/><text x="350" y="155" class="state-txt">YELLOW</text>
+        <path d="M100,75 Q160,40 180,45" class="edge"/><text x="105" y="55" class="edge-txt">timer expires</text>
+        <path d="M255,70 Q310,110 315,125" class="edge"/><text x="255" y="105" class="edge-txt">timer expires</text>
+        <path d="M320,175 Q180,190 105,130" class="edge"/><text x="180" y="200" class="edge-txt">timer expires</text>
+      </svg>
+      <figcaption>The traffic light's complete state diagram: RED → GREEN → YELLOW → RED, forever, each transition triggered by an internal timer reaching its limit.</figcaption>
+    </figure>
+    <p>This is written using the standard <b>two-always-block FSM pattern</b>: one clocked block updates the state (and its timer); a separate combinational block decodes the current state into actual output signals.</p>
+    <div class="codeblock">
+      <div class="code-head"><span>traffic_light.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">traffic_light</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">clk</span>, <span class="id">rst</span>,
+    <span class="kw">output</span> <span class="typ">reg</span>  <span class="id">red</span>, <span class="id">yellow</span>, <span class="id">green</span>
+);
+    <span class="kw">localparam</span> <span class="id">RED</span> = 2'<span class="typ">b</span><span class="num">00</span>, <span class="id">GREEN</span> = 2'<span class="typ">b</span><span class="num">01</span>, <span class="id">YELLOW</span> = 2'<span class="typ">b</span><span class="num">10</span>;
+
+    <span class="typ">reg</span> [1:0] <span class="id">state</span>;
+    <span class="typ">reg</span> [3:0] <span class="id">timer</span>;
+
+    <span class="cmt">// Block 1: state register + timer (sequential)</span>
+    <span class="kw">always</span> @(<span class="kw">posedge</span> <span class="id">clk</span> <span class="kw">or</span> <span class="kw">posedge</span> <span class="id">rst</span>) <span class="kw">begin</span>
+        <span class="kw">if</span> (<span class="id">rst</span>) <span class="kw">begin</span>
+            <span class="id">state</span> <= <span class="id">RED</span>;
+            <span class="id">timer</span> <= 0;
+        <span class="kw">end</span> <span class="kw">else</span> <span class="kw">begin</span>
+            <span class="kw">case</span> (<span class="id">state</span>)
+                <span class="id">RED</span>: <span class="kw">if</span> (<span class="id">timer</span> == 4'<span class="typ">d</span>7)  <span class="kw">begin</span> <span class="id">state</span> <= <span class="id">GREEN</span>;  <span class="id">timer</span> <= 0; <span class="kw">end</span>
+                     <span class="kw">else</span> <span class="id">timer</span> <= <span class="id">timer</span> + 1;
+                <span class="id">GREEN</span>: <span class="kw">if</span> (<span class="id">timer</span> == 4'<span class="typ">d</span>7)  <span class="kw">begin</span> <span class="id">state</span> <= <span class="id">YELLOW</span>; <span class="id">timer</span> <= 0; <span class="kw">end</span>
+                     <span class="kw">else</span> <span class="id">timer</span> <= <span class="id">timer</span> + 1;
+                <span class="id">YELLOW</span>: <span class="kw">if</span> (<span class="id">timer</span> == 4'<span class="typ">d</span>2) <span class="kw">begin</span> <span class="id">state</span> <= <span class="id">RED</span>;    <span class="id">timer</span> <= 0; <span class="kw">end</span>
+                     <span class="kw">else</span> <span class="id">timer</span> <= <span class="id">timer</span> + 1;
+                <span class="kw">default</span>: <span class="id">state</span> <= <span class="id">RED</span>;
+            <span class="kw">endcase</span>
+        <span class="kw">end</span>
+    <span class="kw">end</span>
+
+    <span class="cmt">// Block 2: output decode (pure combinational, Chapter 4 style)</span>
+    <span class="kw">always</span> @(*) <span class="kw">begin</span>
+        <span class="id">red</span>    = (<span class="id">state</span> == <span class="id">RED</span>);
+        <span class="id">yellow</span> = (<span class="id">state</span> == <span class="id">YELLOW</span>);
+        <span class="id">green</span>  = (<span class="id">state</span> == <span class="id">GREEN</span>);
+    <span class="kw">end</span>
+<span class="kw">endmodule</span></pre>
+    </div>
+    <div class="callout good">
+      <div class="callout-title">Why split into two always blocks?</div>
+      This is the industry-standard FSM style: the sequential block <i>only</i> handles state changes (clean, non-blocking, easy to reason about timing for), while the combinational block <i>only</i> decodes state into outputs (using blocking assignment, since it has no memory of its own — Chapter 13's rules, applied to a real FSM). Keeping these concerns separated makes FSMs dramatically easier to debug and modify.
+    </div>
+    <div class="codeblock">
+      <div class="code-head"><span>traffic_light_tb.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">traffic_light_tb</span>;
+    <span class="typ">reg</span> <span class="id">clk</span> = 0, <span class="id">rst</span> = 1;
+    <span class="typ">wire</span> <span class="id">red</span>, <span class="id">yellow</span>, <span class="id">green</span>;
+
+    <span class="id">traffic_light</span> <span class="id">uut</span> (.<span class="id">clk</span>(<span class="id">clk</span>), .<span class="id">rst</span>(<span class="id">rst</span>), .<span class="id">red</span>(<span class="id">red</span>), .<span class="id">yellow</span>(<span class="id">yellow</span>), .<span class="id">green</span>(<span class="id">green</span>));
+
+    <span class="kw">always</span> #5 <span class="id">clk</span> = ~<span class="id">clk</span>;
+
+    <span class="kw">initial</span> <span class="kw">begin</span>
+        #12 <span class="id">rst</span> = 0;
+        #400 <span class="kw">$finish</span>;   <span class="cmt">// long enough to see multiple full RED->GREEN->YELLOW cycles</span>
+    <span class="kw">end</span>
+
+    <span class="kw">initial</span> <span class="kw">$monitor</span>(<span class="str">"t=%0t red=%b yellow=%b green=%b"</span>, <span class="kw">$time</span>, <span class="id">red</span>, <span class="id">yellow</span>, <span class="id">green</span>);
+<span class="kw">endmodule</span></pre>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="digital-lock" data-nav="Project 3: Digital Lock (sequence detector)">
+    <h2>Project 3: Digital Lock — A Sequence-Detector FSM</h2>
+    <p>Our digital lock unlocks only when it sees the exact bit sequence <b>1-0-1-1</b> arrive, one bit per clock cycle, on a single serial input line — a classic FSM pattern used in real password/protocol detection circuits.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 520 160" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="40"  cy="80" r="32" class="state-circle active"/><text x="40" y="85" class="state-txt">S0</text>
+        <circle cx="160" cy="80" r="32" class="state-circle"/><text x="160" y="85" class="state-txt">S1</text>
+        <circle cx="280" cy="80" r="32" class="state-circle"/><text x="280" y="85" class="state-txt">S2</text>
+        <circle cx="400" cy="80" r="32" class="state-circle"/><text x="400" y="85" class="state-txt">S3</text>
+        <circle cx="480" cy="80" r="26" class="state-circle" style="stroke:#f5a524"/><text x="480" y="85" class="state-txt">S4<tspan x="480" dy="12" font-size="9">unlock</tspan></text>
+        <path d="M72,80 L128,80" class="edge"/><text x="85" y="72" class="edge-txt">1</text>
+        <path d="M192,80 L248,80" class="edge"/><text x="205" y="72" class="edge-txt">0</text>
+        <path d="M312,80 L368,80" class="edge"/><text x="325" y="72" class="edge-txt">1</text>
+        <path d="M432,80 L452,80" class="edge"/><text x="435" y="72" class="edge-txt">1</text>
+        <path d="M40,48 Q40,10 160,48" class="edge"/><text x="70" y="20" class="edge-txt">0 (stay S0)</text>
+        <path d="M160,48 Q220,10 280,48" class="edge" style="display:none"/>
+      </svg>
+      <figcaption>Simplified view of the "1011" sequence detector: each state remembers how much of the pattern has matched so far; any wrong bit sends it back toward S0 (or partway, if the wrong bit still partially matches).</figcaption>
+    </figure>
+    <div class="codeblock">
+      <div class="code-head"><span>digital_lock.v — detects serial pattern "1011"</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">digital_lock</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">clk</span>, <span class="id">rst</span>, <span class="id">in</span>,
+    <span class="kw">output</span> <span class="typ">reg</span>  <span class="id">unlock</span>
+);
+    <span class="kw">localparam</span> <span class="id">S0</span>=3'<span class="typ">d</span>0, <span class="id">S1</span>=3'<span class="typ">d</span>1, <span class="id">S2</span>=3'<span class="typ">d</span>2, <span class="id">S3</span>=3'<span class="typ">d</span>3, <span class="id">S4</span>=3'<span class="typ">d</span>4;
+
+    <span class="typ">reg</span> [2:0] <span class="id">state</span>, <span class="id">next_state</span>;
+
+    <span class="cmt">// Block 1: state register</span>
+    <span class="kw">always</span> @(<span class="kw">posedge</span> <span class="id">clk</span> <span class="kw">or</span> <span class="kw">posedge</span> <span class="id">rst</span>) <span class="kw">begin</span>
+        <span class="kw">if</span> (<span class="id">rst</span>) <span class="id">state</span> <= <span class="id">S0</span>;
+        <span class="kw">else</span>        <span class="id">state</span> <= <span class="id">next_state</span>;
+    <span class="kw">end</span>
+
+    <span class="cmt">// Block 2: next-state logic (combinational)</span>
+    <span class="kw">always</span> @(*) <span class="kw">begin</span>
+        <span class="kw">case</span> (<span class="id">state</span>)
+            <span class="id">S0</span>: <span class="id">next_state</span> = <span class="id">in</span> ? <span class="id">S1</span> : <span class="id">S0</span>;
+            <span class="id">S1</span>: <span class="id">next_state</span> = <span class="id">in</span> ? <span class="id">S1</span> : <span class="id">S2</span>;
+            <span class="id">S2</span>: <span class="id">next_state</span> = <span class="id">in</span> ? <span class="id">S3</span> : <span class="id">S0</span>;
+            <span class="id">S3</span>: <span class="id">next_state</span> = <span class="id">in</span> ? <span class="id">S4</span> : <span class="id">S2</span>;
+            <span class="id">S4</span>: <span class="id">next_state</span> = <span class="id">in</span> ? <span class="id">S1</span> : <span class="id">S0</span>;   <span class="cmt">// unlocked -- restart detection right away</span>
+            <span class="kw">default</span>: <span class="id">next_state</span> = <span class="id">S0</span>;
+        <span class="kw">endcase</span>
+    <span class="kw">end</span>
+
+    <span class="cmt">// Block 3: output decode</span>
+    <span class="kw">always</span> @(*) <span class="id">unlock</span> = (<span class="id">state</span> == <span class="id">S4</span>);
+<span class="kw">endmodule</span></pre>
+    </div>
+    <div class="callout">
+      <div class="callout-title">Notice: three always blocks, not two</div>
+      This FSM splits state register, next-state logic, and output decode into <b>three</b> separate blocks — an even cleaner variation of the two-block pattern from the traffic light, and arguably the clearest possible way to write any FSM. Many professional style guides require exactly this three-block structure.
+    </div>
+    <div class="codeblock">
+      <div class="code-head"><span>digital_lock_tb.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">digital_lock_tb</span>;
+    <span class="typ">reg</span> <span class="id">clk</span> = 0, <span class="id">rst</span> = 1, <span class="id">in</span> = 0;
+    <span class="typ">wire</span> <span class="id">unlock</span>;
+
+    <span class="id">digital_lock</span> <span class="id">uut</span> (.<span class="id">clk</span>(<span class="id">clk</span>), .<span class="id">rst</span>(<span class="id">rst</span>), .<span class="id">in</span>(<span class="id">in</span>), .<span class="id">unlock</span>(<span class="id">unlock</span>));
+
+    <span class="kw">always</span> #5 <span class="id">clk</span> = ~<span class="id">clk</span>;
+
+    <span class="kw">initial</span> <span class="kw">begin</span>
+        #12 <span class="id">rst</span> = 0;
+
+        <span class="cmt">// feed in 1,0,1,1 -> should unlock right after the final '1'</span>
+        <span class="id">in</span>=1; #10; <span class="id">in</span>=0; #10; <span class="id">in</span>=1; #10; <span class="id">in</span>=1; #10;
+        <span class="kw">$display</span>(<span class="str">"After 1011: unlock=%b (expect 1)"</span>, <span class="id">unlock</span>);
+
+        <span class="cmt">// feed in a wrong sequence, 1,1,0 -> should NOT unlock</span>
+        <span class="id">in</span>=1; #10; <span class="id">in</span>=1; #10; <span class="id">in</span>=0; #10;
+        <span class="kw">$display</span>(<span class="str">"After 110: unlock=%b (expect 0)"</span>, <span class="id">unlock</span>);
+
+        <span class="kw">$finish</span>;
+    <span class="kw">end</span>
+<span class="kw">endmodule</span></pre>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="common-mistakes" data-nav="Common mistakes">
+    <h2>Common Mistakes in FSM Design</h2>
+    <ul>
+      <li><b>Forgetting the <code>default</code> case in next-state logic</b> — an unreachable/undefined state can leave the FSM permanently stuck, since there's no rule for what happens next.</li>
+      <li><b>Mixing state-update and output logic in one always block</b> — makes the FSM much harder to read, debug, and modify; always prefer the two/three-block separation shown here.</li>
+      <li><b>Choosing a DIVISOR/timer value impossible to simulate quickly</b> — always parameterize timing constants so testbenches can use tiny values while real hardware uses realistic ones.</li>
+      <li><b>Forgetting that <code>unlock</code> is only HIGH for one clock cycle</b> in this Moore-style design — a real lock mechanism would typically need to latch or extend that pulse for a human-usable duration.</li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="summary" data-nav="Summary & exercises">
+    <h2>Summary</h2>
+    <p>The LED blinker demonstrates why real designs need clock dividers — human-visible timing requires counting down from a much faster hardware clock. The traffic light is a complete, real Finite State Machine, cleanly split into a state/timer register and a combinational output-decode block. The digital lock is a sequence-detector FSM, using the even cleaner three-block style (state register, next-state logic, output decode) to detect the pattern "1011" arriving one bit per clock cycle.</p>
+  </section>
+
+  <section class="chapter-section" id="interview-questions" data-nav="Interview questions">
+    <h2>Interview Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>Why can't an LED be directly toggled by a raw 50 MHz FPGA clock?</summary><div class="answer">50 MHz means the clock toggles 50 million times per second — far faster than the human eye can perceive, so the LED would appear constantly (dimly) lit rather than visibly blinking. A clock divider counts down to a much slower effective toggle rate.</div></details></li>
+      <li><details class="qa"><summary>Why is the two/three-always-block FSM style preferred over combining everything into one block?</summary><div class="answer">Separating state update (sequential), next-state logic, and output decode (combinational) keeps each block's responsibility singular and clear, making the design far easier to read, debug, and modify — and keeps blocking/non-blocking assignment usage consistent with Chapter 13's rules.</div></details></li>
+      <li><details class="qa"><summary>What happens to the digital_lock FSM if it receives an unexpected reset mid-sequence?</summary><div class="answer">Since rst is asynchronous, the FSM immediately returns to S0 regardless of the clock, discarding any partially-matched sequence — a deliberate, safe behavior for a lock circuit.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="viva-questions" data-nav="Viva questions">
+    <h2>Viva Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>In traffic_light.v, how many states does the FSM have?</summary><div class="answer">Three: RED, GREEN, YELLOW.</div></details></li>
+      <li><details class="qa"><summary>What sequence does digital_lock.v detect?</summary><div class="answer">1011, arriving one bit per clock cycle on the serial input `in`.</div></details></li>
+      <li><details class="qa"><summary>Why does led_blinker use a parameter for DIVISOR instead of a fixed number?</summary><div class="answer">So simulation can use a small, fast-to-test value while real hardware deployment can use a large, realistic value for a human-visible blink rate — without changing the module's code.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="exercises" data-nav="Exercises">
+    <h2>Exercises</h2>
+    <p>1. Add a pedestrian-crossing button input to traffic_light that forces an early transition to YELLOW/RED when pressed. 2. Modify digital_lock to detect a different 5-bit sequence of your choice. 3. Combine led_blinker and traffic_light so each traffic light color drives its own separate blinking LED at a different blink rate.</p>
+  </section>
+
+  <div class="footer-nav">
+    <a href="chapter-21.html"><span class="lbl">← BACK</span>Counters & Shift Registers</a>
+    <a href="chapter-23.html" class="next"><span class="lbl">NEXT</span>Mini Projects: Stopwatch, Calculator, PWM LED, 7-Seg Counter</a>
+  </div>
+
+</article>
+</div>
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">↑</button>
+
+<script>window.CURRENT_CHAPTER_ID = "ch-22";</script>
+<script src="shared/nav.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => { const t = document.getElementById("reading-time"); const t2 = document.getElementById("reading-time-2"); if(t && t2){ const obs = new MutationObserver(()=>{ t2.textContent = t.textContent; }); obs.observe(t, {childList:true}); } });</script>
+</body>
+</html>
