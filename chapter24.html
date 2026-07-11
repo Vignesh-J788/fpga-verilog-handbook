@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 24 · Vivado From Zero: Project → Bitstream → Board — FPGA & Verilog Handbook</title>
+<link rel="stylesheet" href="shared/styles.css">
+<style>
+  .flow-step{ display:flex; gap:16px; align-items:flex-start; margin:18px 0; }
+  .flow-num{ flex-shrink:0; width:34px; height:34px; border-radius:50%; background:var(--sheet-raised); border:1px solid var(--sig-blue); color:var(--sig-cyan); display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-weight:700; }
+  .flow-body h4{ margin:2px 0 6px; font-size:14.5px; }
+  .flow-body p{ margin:0; color:var(--ink-dim); font-size:13.5px; }
+</style>
+</head>
+<body>
+<div class="board-grid"></div>
+
+<div class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Open chapter menu"><span></span><span></span><span></span></button>
+  <div class="topbar-title"><b>Chapter 24</b> · Vivado From Zero: Project → Bitstream → Board</div>
+  <div class="topbar-right"><span id="reading-time" class="dim" style="font-family:var(--font-mono);font-size:12px;"></span></div>
+</div>
+<div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="logo">◈ FPGA & VERILOG HANDBOOK</div>
+    <div class="tag">From absolute zero to a working FPGA board</div>
+  </div>
+  <div class="sidebar-search"><input type="text" id="sidebar-search-input" placeholder="Search chapters..."></div>
+  <div class="sidebar-group" id="sidebar-list"></div>
+</nav>
+
+<div class="page-wrap">
+<article class="sheet">
+
+  <div class="eyebrow">Part 6 · Vivado & Hardware — Chapter 24 (First chapter of Part 6)</div>
+  <h1 class="h-title">Vivado From Zero: Project → Bitstream → Board</h1>
+  <p class="h-sub">Every line of Verilog you've written in Part 5 has been sitting in text files and simulators. This chapter is where that changes — the complete, real workflow for turning your code into a bitstream running on an actual FPGA.</p>
+  <div class="meta-row"><span>📖 Intermediate Level</span><span>🕐 <span id="reading-time-2">—</span></span><span>🧩 9 sections</span></div>
+
+  <div class="callout warn">
+    <div class="callout-title">A note on exact menus</div>
+    Vivado's exact menu wording and icon positions shift slightly between versions. What follows describes the workflow's stable, version-independent shape — the Flow Navigator pane on the left always exposes these same stages in this same order, regardless of the exact Vivado release you're using.
+  </div>
+
+  <section class="chapter-section" id="what-is-vivado" data-nav="What is Vivado?">
+    <h2>What Is Vivado, Exactly?</h2>
+    <p>Vivado is AMD/Xilinx's design suite — the actual software that performs everything from Chapters 13 and 7 conceptually: taking your RTL Verilog, simulating it, synthesizing it into a gate-level netlist, placing and routing that netlist onto real LUTs/CLBs, and finally packaging the result into a bitstream file ready to configure a physical chip.</p>
+  </section>
+
+  <section class="chapter-section" id="creating-project" data-nav="1. Creating a project">
+    <h2>Step 1: Creating a New Project</h2>
+    <div class="flow-step">
+      <div class="flow-num">1</div>
+      <div class="flow-body"><h4>Launch the New Project wizard</h4><p>Choose a project name and location, then select an <b>RTL Project</b> type — this tells Vivado you're providing your own Verilog/VHDL source, not importing an existing netlist.</p></div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">2</div>
+      <div class="flow-body"><h4>Select your target part or board</h4><p>Vivado needs to know exactly which physical chip (or development board) you're targeting, since the available LUTs, pins, and routing resources (Chapter 7) differ between chips. Pick your specific board from the board list if it's available, or the exact part number from its datasheet otherwise.</p></div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">3</div>
+      <div class="flow-body"><h4>Finish the wizard</h4><p>Vivado creates the project directory structure and opens the main IDE — the <b>Flow Navigator</b> pane on the left will guide you through every remaining stage described below, in order.</p></div>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="adding-sources" data-nav="2. Adding sources">
+    <h2>Step 2: Adding Design and Simulation Sources</h2>
+    <p>Vivado separates your files into two categories, and mixing them up is a common beginner error:</p>
+    <ul>
+      <li><b>Design Sources</b> — your actual Verilog modules meant to become real hardware (everything from Part 5, minus the testbenches).</li>
+      <li><b>Simulation Sources</b> — your testbenches (Chapter 12), which only ever run inside Vivado's simulator and are never synthesized.</li>
+    </ul>
+    <p>Add your files through the Flow Navigator's <b>Add Sources</b> option, being careful to place each file in the correct category — a testbench accidentally added as a design source will cause confusing synthesis errors, since it contains non-synthesizable constructs like <code>#10</code> delays (Chapter 10).</p>
+  </section>
+
+  <section class="chapter-section" id="constraints" data-nav="3. Adding constraints (XDC)">
+    <h2>Step 3: Adding Constraints — the .xdc File</h2>
+    <p>A <b>Xilinx Design Constraints (.xdc)</b> file tells Vivado two critical things your Verilog code alone can never express: which physical chip <b>pin</b> each port connects to, and what <b>timing</b> requirements (like clock frequency) it must satisfy.</p>
+    <div class="codeblock">
+      <div class="code-head"><span>example.xdc — mapping ports to physical board pins</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="cmt"># map the 'clk' port to the board's oscillator pin, with its voltage standard</span>
+<span class="id">set_property</span> <span class="id">PACKAGE_PIN</span> <span class="id">E3</span>  [<span class="id">get_ports</span> <span class="id">clk</span>]
+<span class="id">set_property</span> <span class="id">IOSTANDARD</span> <span class="typ">LVCMOS33</span> [<span class="id">get_ports</span> <span class="id">clk</span>]
+
+<span class="cmt"># map 'rst' to a physical push-button</span>
+<span class="id">set_property</span> <span class="id">PACKAGE_PIN</span> <span class="id">T18</span> [<span class="id">get_ports</span> <span class="id">rst</span>]
+<span class="id">set_property</span> <span class="id">IOSTANDARD</span> <span class="typ">LVCMOS33</span> [<span class="id">get_ports</span> <span class="id">rst</span>]
+
+<span class="cmt"># map 'led' to a physical LED pin</span>
+<span class="id">set_property</span> <span class="id">PACKAGE_PIN</span> <span class="id">V11</span> [<span class="id">get_ports</span> <span class="id">led</span>]
+<span class="id">set_property</span> <span class="id">IOSTANDARD</span> <span class="typ">LVCMOS33</span> [<span class="id">get_ports</span> <span class="id">led</span>]
+
+<span class="cmt"># declare the incoming clock's actual frequency, e.g. 100 MHz -> 10ns period</span>
+<span class="id">create_clock</span> -<span class="id">period</span> 10.000 -<span class="id">name</span> <span class="id">sys_clk</span> [<span class="id">get_ports</span> <span class="id">clk</span>]</pre>
+    </div>
+    <div class="callout">
+      <div class="callout-title">Where these exact pin names come from</div>
+      <code>PACKAGE_PIN</code> values are never guessed — they come directly from your specific board's official pinout documentation/schematic (Chapter 26 covers the Real Digital Boolean board's layout specifically). Every development board publishes a "master XDC" listing every available pin's name, exactly for this purpose.
+    </div>
+  </section>
+
+  <section class="chapter-section" id="simulation" data-nav="4. Running simulation">
+    <h2>Step 4: Running Behavioral Simulation</h2>
+    <p>Before synthesizing anything, run your Chapter 12 testbenches through the Flow Navigator's <b>Run Simulation → Run Behavioral Simulation</b> option. This launches Vivado's own built-in simulator and waveform viewer — the same kind of waveform you've been reading since Chapter 12, just generated by the real tool now instead of described on paper.</p>
+  </section>
+
+  <section class="chapter-section" id="rtl-analysis" data-nav="5. RTL analysis">
+    <h2>Step 5: RTL Analysis — Viewing the Schematic</h2>
+    <p>The <b>Open Elaborated Design → Schematic</b> option lets you see Vivado's first-pass interpretation of your Verilog as an actual gate/block diagram — a genuinely useful sanity check to confirm the tool understood your design's structure the way you intended, before spending time on full synthesis.</p>
+  </section>
+
+  <section class="chapter-section" id="synthesis-step" data-nav="6. Running synthesis">
+    <h2>Step 6: Run Synthesis</h2>
+    <p>Clicking <b>Run Synthesis</b> performs everything Chapter 13 described conceptually — converting your RTL into a real gate-level netlist of LUTs and flip-flops (Chapter 7). Afterward, check the <b>Synthesis Completed</b> report for:</p>
+    <ul>
+      <li><b>Utilization</b> — how many LUTs, flip-flops, and other resources your design consumes, out of the chip's total.</li>
+      <li><b>Warnings</b> — often flagging exactly the kinds of issues Chapter 11 and Chapter 13 warned about, like unintended latches from incomplete case statements.</li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="implementation-step" data-nav="7. Running implementation">
+    <h2>Step 7: Run Implementation</h2>
+    <p><b>Run Implementation</b> performs place-and-route (Chapter 7): deciding exactly which physical CLBs your synthesized logic lands on, and configuring the routing fabric's switch points to connect them. Afterward, check the <b>Timing Summary</b> report — this is where Chapter 13's setup time, hold time, and critical path stop being theory and become real numbers, showing whether your design actually meets its declared clock frequency (from your <code>create_clock</code> constraint).</p>
+    <div class="callout warn">
+      <div class="callout-title">What a timing failure looks like</div>
+      A negative "Worst Negative Slack (WNS)" value means some path in your design is too slow for the clock frequency you declared — the fix is either optimizing your logic, reducing the declared clock frequency, or restructuring the design to shorten its critical path.
+    </div>
+  </section>
+
+  <section class="chapter-section" id="bitstream-step" data-nav="8. Generate Bitstream">
+    <h2>Step 8: Generate Bitstream</h2>
+    <p>Once implementation succeeds, <b>Generate Bitstream</b> packages the fully placed-and-routed design into the final <code>.bit</code> file — the actual configuration data described back in Chapter 7, ready to be loaded onto real silicon.</p>
+  </section>
+
+  <section class="chapter-section" id="hardware-manager" data-nav="9. Hardware Manager & programming">
+    <h2>Step 9: Programming the Real Board</h2>
+    <div class="flow-step">
+      <div class="flow-num">1</div>
+      <div class="flow-body"><h4>Connect your board</h4><p>Plug your FPGA board into your computer via USB (this also usually provides the JTAG programming connection).</p></div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">2</div>
+      <div class="flow-body"><h4>Open Hardware Manager, then Open Target → Auto Connect</h4><p>Vivado searches for and connects to your physical board over the USB/JTAG link.</p></div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">3</div>
+      <div class="flow-body"><h4>Program Device</h4><p>Select your generated <code>.bit</code> file and click Program — Vivado loads your configuration directly onto the chip's configuration memory (Chapter 7). The instant this finishes, your board is physically running the exact circuit you designed.</p></div>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="summary" data-nav="Summary & key points">
+    <h2>Summary</h2>
+    <p>The complete Vivado flow mirrors everything taught conceptually in Parts 2–3 of this handbook: create an RTL project targeting your specific board, add design sources and separate simulation (testbench) sources, add an XDC file mapping ports to physical pins and declaring clock timing, simulate to verify behavior, synthesize into a gate-level netlist, implement (place and route) onto real chip resources, generate the bitstream, then program the physical board through Hardware Manager.</p>
+    <h3>Key Points</h3>
+    <ul>
+      <li>Design sources become real hardware; simulation sources (testbenches) never do.</li>
+      <li>XDC files map ports to physical pins and declare clock/timing constraints.</li>
+      <li>Synthesis reports utilization and warnings; Implementation reports timing (WNS) and finalizes placement/routing.</li>
+      <li>Generate Bitstream produces the .bit file; Hardware Manager programs it onto the real board.</li>
+    </ul>
+    <div class="mem-trick"><b>Memory Trick:</b> "Sources, Constraints, Simulate, Synthesize, Implement, Bitstream, Program — SCSSIBP, the same seven steps, every single project."</div>
+  </section>
+
+  <section class="chapter-section" id="practice-questions" data-nav="Practice questions">
+    <h2>Practice Questions</h2>
+    <ol>
+      <li>Why must a testbench never be added as a Design Source?</li>
+      <li>What two things does an XDC file specify that Verilog code cannot?</li>
+      <li>What does a negative Worst Negative Slack (WNS) value indicate?</li>
+      <li>List, in order, the seven major stages from project creation to a programmed board.</li>
+    </ol>
+  </section>
+
+  <section class="chapter-section" id="interview-questions" data-nav="Interview questions">
+    <h2>Interview Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>What is the purpose of an XDC constraints file?</summary><div class="answer">It maps design ports to physical chip pins (with their voltage/IO standards) and declares timing requirements like clock period, giving the synthesis and implementation tools the physical and timing context that pure RTL code cannot express on its own.</div></details></li>
+      <li><details class="qa"><summary>What is the practical difference between synthesis and implementation in Vivado?</summary><div class="answer">Synthesis converts RTL into an abstract gate-level netlist (LUTs, flip-flops, and their connections) without yet assigning physical locations. Implementation performs place-and-route, assigning that netlist to specific physical CLBs and configuring the routing fabric's switch points on the real chip.</div></details></li>
+      <li><details class="qa"><summary>What would you check first if a design fails timing after implementation?</summary><div class="answer">The Timing Summary report's Worst Negative Slack (WNS) and the specific failing path it highlights, to identify which portion of the design's critical path is too slow for the declared clock frequency.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="viva-questions" data-nav="Viva questions">
+    <h2>Viva Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>What file extension do Vivado constraint files use?</summary><div class="answer">.xdc</div></details></li>
+      <li><details class="qa"><summary>What does "Auto Connect" do in Hardware Manager?</summary><div class="answer">It searches for and connects Vivado to a physically attached FPGA board over USB/JTAG.</div></details></li>
+      <li><details class="qa"><summary>What file type does Generate Bitstream produce?</summary><div class="answer">A .bit file.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="assignments" data-nav="Assignments">
+    <h2>Assignments</h2>
+    <p>1. Create a real Vivado project for Chapter 22's led_blinker, write a matching XDC mapping clk/rst/led to your board's actual pins, and take it through the full flow to a programmed board. 2. Deliberately introduce a timing-breaking change (like an enormous clock frequency in create_clock) and observe what the Timing Summary report shows. 3. Practice separating design vs. simulation sources by adding both traffic_light.v and traffic_light_tb.v to a fresh project, confirming Vivado treats them correctly.</p>
+  </section>
+
+  <div class="footer-nav">
+    <a href="chapter-23.html"><span class="lbl">← BACK</span>Mini Projects: Stopwatch, Calculator, PWM LED, 7-Seg Counter</a>
+    <a href="chapter-25.html" class="next"><span class="lbl">NEXT</span>Debugging, Reports & Common Errors</a>
+  </div>
+
+</article>
+</div>
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">↑</button>
+
+<script>window.CURRENT_CHAPTER_ID = "ch-24";</script>
+<script src="shared/nav.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => { const t = document.getElementById("reading-time"); const t2 = document.getElementById("reading-time-2"); if(t && t2){ const obs = new MutationObserver(()=>{ t2.textContent = t.textContent; }); obs.observe(t, {childList:true}); } });</script>
+</body>
+</html>
