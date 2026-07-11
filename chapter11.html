@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 11 · if/else, case, loops, generate, parameters — FPGA & Verilog Handbook</title>
+<link rel="stylesheet" href="shared/styles.css">
+</head>
+<body>
+<div class="board-grid"></div>
+
+<div class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Open chapter menu"><span></span><span></span><span></span></button>
+  <div class="topbar-title"><b>Chapter 11</b> · if/else, case, loops, generate, parameters</div>
+  <div class="topbar-right"><span id="reading-time" class="dim" style="font-family:var(--font-mono);font-size:12px;"></span></div>
+</div>
+<div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="logo">◈ FPGA & VERILOG HANDBOOK</div>
+    <div class="tag">From absolute zero to a working FPGA board</div>
+  </div>
+  <div class="sidebar-search"><input type="text" id="sidebar-search-input" placeholder="Search chapters..."></div>
+  <div class="sidebar-group" id="sidebar-list"></div>
+</nav>
+
+<div class="page-wrap">
+<article class="sheet">
+
+  <div class="eyebrow">Part 3 · Verilog HDL From Zero — Chapter 11</div>
+  <h1 class="h-title">if/else, case, Loops, generate, parameters</h1>
+  <p class="h-sub">This chapter gives you decision-making, repetition, and configurability inside your Verilog code — ending with a genuine capstone: a fully parameterized, any-width ripple-carry adder built automatically from Chapter 4's full adder.</p>
+  <div class="meta-row"><span>📖 Beginner Level</span><span>🕐 <span id="reading-time-2">—</span></span><span>🧩 8 sections</span></div>
+
+  <section class="chapter-section" id="vectors-note" data-nav="A quick note: multi-bit buses">
+    <h2>A Quick Note Before We Start: Multi-Bit Buses</h2>
+    <p>Every example so far used single wires. Real designs constantly need groups of bits — a "bus." You declare one using square brackets: <code>wire [3:0] data</code> declares a 4-bit bus named <code>data</code>, with bit 3 as the most significant bit (MSB) and bit 0 as the least significant bit (LSB) — exactly the place-value idea from Chapter 1's binary numbers. We'll use buses freely from here on.</p>
+  </section>
+
+  <section class="chapter-section" id="if-else" data-nav="if / else">
+    <h2><code>if</code> / <code>else</code> Inside always Blocks</h2>
+    <p>Just like C, Verilog's <code>if</code>/<code>else</code> makes a decision — but remember, it must live inside a procedural block (<code>always</code> or <code>initial</code>), never on its own at the top level. When you chain several <code>else if</code> conditions, Verilog checks them <b>in order, top to bottom</b>, and stops at the first true one — this is exactly the "priority" behavior behind a priority encoder (Chapter 4, fully built in Chapter 18).</p>
+    <div class="codeblock">
+      <div class="code-head"><span>verilog · priority if/else chain</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">always</span> @(*) <span class="kw">begin</span>
+    <span class="kw">if</span> (<span class="id">req</span>[3])
+        <span class="id">grant</span> = 2'<span class="typ">b</span><span class="num">11</span>;      <span class="cmt">// req[3] checked FIRST — highest priority</span>
+    <span class="kw">else</span> <span class="kw">if</span> (<span class="id">req</span>[2])
+        <span class="id">grant</span> = 2'<span class="typ">b</span><span class="num">10</span>;
+    <span class="kw">else</span> <span class="kw">if</span> (<span class="id">req</span>[1])
+        <span class="id">grant</span> = 2'<span class="typ">b</span><span class="num">01</span>;
+    <span class="kw">else</span>
+        <span class="id">grant</span> = 2'<span class="typ">b</span><span class="num">00</span>;    <span class="cmt">// fallback / lowest priority</span>
+<span class="kw">end</span></pre>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="case-statement" data-nav="case statement">
+    <h2>The <code>case</code> Statement — A Cleaner Multi-Way Choice</h2>
+    <p>When you're choosing between several fixed values of one signal (rather than several unrelated conditions), <code>case</code> reads far more cleanly than a long <code>if/else if</code> chain. Here's a tiny 4-function ALU (arithmetic logic unit) — a preview of Chapter 23's calculator project — choosing its operation based on a 2-bit opcode:</p>
+    <div class="codeblock">
+      <div class="code-head"><span>mini_alu.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">mini_alu</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> [1:0] <span class="id">op</span>,
+    <span class="kw">input</span>  <span class="typ">wire</span> [3:0] <span class="id">a</span>,
+    <span class="kw">input</span>  <span class="typ">wire</span> [3:0] <span class="id">b</span>,
+    <span class="kw">output</span> <span class="typ">reg</span>  [3:0] <span class="id">result</span>
+);
+
+    <span class="kw">always</span> @(*) <span class="kw">begin</span>
+        <span class="kw">case</span> (<span class="id">op</span>)
+            2'<span class="typ">b</span><span class="num">00</span>: <span class="id">result</span> = <span class="id">a</span> + <span class="id">b</span>;   <span class="cmt">// add</span>
+            2'<span class="typ">b</span><span class="num">01</span>: <span class="id">result</span> = <span class="id">a</span> - <span class="id">b</span>;   <span class="cmt">// subtract</span>
+            2'<span class="typ">b</span><span class="num">10</span>: <span class="id">result</span> = <span class="id">a</span> & <span class="id">b</span>;   <span class="cmt">// bitwise AND</span>
+            2'<span class="typ">b</span><span class="num">11</span>: <span class="id">result</span> = <span class="id">a</span> | <span class="id">b</span>;   <span class="cmt">// bitwise OR</span>
+            <span class="kw">default</span>: <span class="id">result</span> = 4'<span class="typ">b</span><span class="num">0000</span>;
+        <span class="kw">endcase</span>
+    <span class="kw">end</span>
+
+<span class="kw">endmodule</span></pre>
+    </div>
+    <div class="callout warn">
+      <div class="callout-title">Never skip the <code>default</code> case</div>
+      Omitting <code>default</code> means the tool has no idea what <code>result</code> should be for an uncovered case — and to "remember" the previous value in that situation, it's forced to insert an unintended latch (Chapter 5) into your design. This is one of the most common accidental-latch bugs in real Verilog code. Always include a <code>default</code>, even if it just holds a safe value like all-zeros.
+    </div>
+    <p>Two close relatives are worth knowing: <code>casez</code> treats <code>z</code>/don't-care bits (written <code>?</code>) as wildcards, and <code>casex</code> treats both <code>x</code> and <code>z</code> as wildcards — both are exactly the "don't care" idea from Chapter 3's Karnaugh maps, and they're the natural way to write a priority encoder's case list cleanly (Chapter 18).</p>
+  </section>
+
+  <section class="chapter-section" id="for-loop" data-nav="for loops">
+    <h2><code>for</code> Loops</h2>
+    <p>Verilog's <code>for</code> loop looks almost identical to C's, but remember: it lives inside a procedural block, and it doesn't "take time" on real hardware — it's simply a compact way of writing out repetitive logic (or repetitive testbench stimulus), which gets fully expanded before the circuit is built.</p>
+    <div class="codeblock">
+      <div class="code-head"><span>verilog · for loop example — counting set bits</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="typ">integer</span> <span class="id">i</span>;
+<span class="kw">always</span> @(*) <span class="kw">begin</span>
+    <span class="id">count</span> = 0;
+    <span class="kw">for</span> (<span class="id">i</span> = 0; <span class="id">i</span> < 8; <span class="id">i</span> = <span class="id">i</span> + 1) <span class="kw">begin</span>
+        <span class="kw">if</span> (<span class="id">data</span>[<span class="id">i</span>])
+            <span class="id">count</span> = <span class="id">count</span> + 1;   <span class="cmt">// tally how many bits of data are 1</span>
+    <span class="kw">end</span>
+<span class="kw">end</span></pre>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="instantiation" data-nav="Instantiating a module">
+    <h2>Quick Detour: Using One Module Inside Another</h2>
+    <p>Before we can build our capstone example, we need one more small piece of syntax: how to place (<b>instantiate</b>) one module inside another, connecting its ports to signals in the parent module. This uses <b>named port connection</b>, which is clearer and safer than position-based connection:</p>
+    <div class="codeblock">
+      <div class="code-head"><span>verilog · instantiating a module</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="id">full_adder</span> <span class="id">fa0</span> (
+    .<span class="id">a</span>(<span class="id">A</span>[0]),
+    .<span class="id">b</span>(<span class="id">B</span>[0]),
+    .<span class="id">cin</span>(<span class="id">carry</span>[0]),
+    .<span class="id">sum</span>(<span class="id">Sum</span>[0]),
+    .<span class="id">cout</span>(<span class="id">carry</span>[1])
+);</pre>
+    </div>
+    <p>Reading this out loud: "Place a <code>full_adder</code>, name this particular copy <code>fa0</code>, and wire its port <code>a</code> to my signal <code>A[0]</code>, its port <code>b</code> to my signal <code>B[0]</code>," and so on. We'll cover this style of design (called <b>structural modeling</b>) fully in Chapter 14 — for now, you have exactly enough to follow the capstone below.</p>
+  </section>
+
+  <section class="chapter-section" id="generate-parameters" data-nav="generate & parameters — the capstone">
+    <h2>The Capstone: <code>parameter</code> + <code>generate</code> Build a Real N-bit Adder</h2>
+    <p>Recall Chapter 4's ripple-carry adder — a chain of full adders, each one's carry-out feeding the next one's carry-in. Writing out four, eight, or thirty-two full adder instances by hand would be tedious and error-prone. <code>generate</code> loops let the tool build that chain automatically, for <b>any width you choose</b>, using a <code>parameter</code>.</p>
+
+    <h3>Step 1 — A Reusable Full Adder (from Chapter 4's equations)</h3>
+    <div class="codeblock">
+      <div class="code-head"><span>full_adder.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">full_adder</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">a</span>,
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">b</span>,
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">cin</span>,
+    <span class="kw">output</span> <span class="typ">wire</span> <span class="id">sum</span>,
+    <span class="kw">output</span> <span class="typ">wire</span> <span class="id">cout</span>
+);
+    <span class="kw">assign</span> <span class="id">sum</span>  = <span class="id">a</span> ^ <span class="id">b</span> ^ <span class="id">cin</span>;
+    <span class="kw">assign</span> <span class="id">cout</span> = (<span class="id">a</span> & <span class="id">b</span>) | (<span class="id">b</span> & <span class="id">cin</span>) | (<span class="id">a</span> & <span class="id">cin</span>);
+<span class="kw">endmodule</span></pre>
+    </div>
+
+    <h3>Step 2 — <code>parameter</code>: Making the Width Configurable</h3>
+    <p>A <code>parameter</code> is a named constant that a module's <i>user</i> can override when instantiating it — perfect for "how many bits wide should this be?" questions.</p>
+    <div class="codeblock">
+      <div class="code-head"><span>verilog · declaring a parameter</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">parameter</span> <span class="id">N</span> = 4;   <span class="cmt">// default width, can be overridden by whoever instantiates this module</span></pre>
+    </div>
+
+    <h3>Step 3 — <code>generate</code>: Building N Full Adders Automatically</h3>
+    <div class="codeblock">
+      <div class="code-head"><span>ripple_adder.v — works for ANY width N</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">ripple_adder</span> #(
+    <span class="kw">parameter</span> <span class="id">N</span> = 4
+) (
+    <span class="kw">input</span>  <span class="typ">wire</span> [<span class="id">N</span>-1:0] <span class="id">A</span>,
+    <span class="kw">input</span>  <span class="typ">wire</span> [<span class="id">N</span>-1:0] <span class="id">B</span>,
+    <span class="kw">input</span>  <span class="typ">wire</span>       <span class="id">Cin</span>,
+    <span class="kw">output</span> <span class="typ">wire</span> [<span class="id">N</span>-1:0] <span class="id">Sum</span>,
+    <span class="kw">output</span> <span class="typ">wire</span>       <span class="id">Cout</span>
+);
+
+    <span class="typ">wire</span> [<span class="id">N</span>:0] <span class="id">carry</span>;
+    <span class="kw">assign</span> <span class="id">carry</span>[0] = <span class="id">Cin</span>;
+    <span class="kw">assign</span> <span class="id">Cout</span>     = <span class="id">carry</span>[<span class="id">N</span>];
+
+    <span class="typ">genvar</span> <span class="id">i</span>;
+    <span class="kw">generate</span>
+        <span class="kw">for</span> (<span class="id">i</span> = 0; <span class="id">i</span> < <span class="id">N</span>; <span class="id">i</span> = <span class="id">i</span> + 1) <span class="kw">begin</span> : <span class="id">adder_stage</span>
+            <span class="id">full_adder</span> <span class="id">fa</span> (
+                .<span class="id">a</span>(<span class="id">A</span>[<span class="id">i</span>]),
+                .<span class="id">b</span>(<span class="id">B</span>[<span class="id">i</span>]),
+                .<span class="id">cin</span>(<span class="id">carry</span>[<span class="id">i</span>]),
+                .<span class="id">sum</span>(<span class="id">Sum</span>[<span class="id">i</span>]),
+                .<span class="id">cout</span>(<span class="id">carry</span>[<span class="id">i</span>+1])
+            );
+        <span class="kw">end</span>
+    <span class="kw">endgenerate</span>
+
+<span class="kw">endmodule</span></pre>
+    </div>
+    <div class="callout good">
+      <div class="callout-title">What just happened</div>
+      This one piece of code can build a 4-bit adder, a 16-bit adder, or a 64-bit adder — just by instantiating it with a different <code>N</code> — without writing a single extra line. The <code>carry</code> bus threads <code>carry[i]</code> into stage <code>i</code>'s <code>cin</code> and takes <code>carry[i+1]</code> from its <code>cout</code>, exactly reproducing Chapter 4's ripple-carry diagram, generated automatically for any width.
+    </div>
+    <p>To instantiate this with an 8-bit width elsewhere, you'd write:</p>
+    <div class="codeblock">
+      <div class="code-head"><span>verilog · overriding a parameter at instantiation</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="id">ripple_adder</span> #(.<span class="id">N</span>(8)) <span class="id">my_adder</span> (
+    .<span class="id">A</span>(<span class="id">busA</span>), .<span class="id">B</span>(<span class="id">busB</span>), .<span class="id">Cin</span>(1'<span class="typ">b</span>0),
+    .<span class="id">Sum</span>(<span class="id">busSum</span>), .<span class="id">Cout</span>(<span class="id">busCout</span>)
+);</pre>
+    </div>
+    <p class="dim">One more small tool worth knowing: <code>localparam</code> declares a constant exactly like <code>parameter</code>, except it can <b>never</b> be overridden from outside — useful for internal constants that must never change (like a fixed state-machine encoding in Chapter 22).</p>
+  </section>
+
+  <section class="chapter-section" id="summary" data-nav="Summary & key points">
+    <h2>Summary</h2>
+    <p><code>if</code>/<code>else</code> chains check conditions in strict priority order; <code>case</code> statements cleanly select among fixed values of one signal (always include a <code>default</code> to avoid accidental latches). <code>for</code> loops repeat logic compactly inside procedural blocks. <code>parameter</code> lets a module's width or behavior be configured by whoever instantiates it; <code>generate</code> loops use that parameter to automatically build a repeated hardware structure — as shown by turning Chapter 4's single full adder into a genuinely any-width ripple-carry adder with just a few lines of code.</p>
+    <h3>Key Points</h3>
+    <ul>
+      <li><code>if/else if</code> chains = priority order, checked top to bottom.</li>
+      <li><code>case</code> statements always need a <code>default</code> to avoid unintended latches.</li>
+      <li><code>casez</code>/<code>casex</code> support don't-care (wildcard) matching.</li>
+      <li><code>parameter</code> = configurable constant; <code>localparam</code> = fixed, non-overridable constant.</li>
+      <li><code>generate</code> + <code>genvar</code> build repeated hardware structures automatically at compile time.</li>
+    </ul>
+    <div class="mem-trick"><b>Memory Trick:</b> "if/else checks in order, like asking questions one by one. case is a menu — pick your dish. generate is a photocopier — one full_adder becomes N of them, instantly."</div>
+  </section>
+
+  <section class="chapter-section" id="practice-questions" data-nav="Practice questions">
+    <h2>Practice Questions</h2>
+    <ol>
+      <li>Why must a case statement always include a default branch?</li>
+      <li>What happens if you instantiate <code>ripple_adder</code> without overriding <code>N</code>?</li>
+      <li>Rewrite the mini_alu example using an if/else if chain instead of case, and explain which style you find clearer.</li>
+      <li>What is the difference between <code>parameter</code> and <code>localparam</code>?</li>
+    </ol>
+  </section>
+
+  <section class="chapter-section" id="interview-questions" data-nav="Interview questions">
+    <h2>Interview Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>Why does an incomplete case statement risk creating an unintended latch?</summary><div class="answer">If some input combination isn't covered, the synthesis tool must preserve the signal's previous value for that case, which requires memory — an unintended latch — since the design didn't specify what should happen otherwise.</div></details></li>
+      <li><details class="qa"><summary>What is the purpose of a generate block?</summary><div class="answer">It lets you programmatically create repeated hardware structures (like N instances of a module) at compile time, based on a loop variable (genvar), rather than manually writing out each instance by hand.</div></details></li>
+      <li><details class="qa"><summary>How does a parameter differ from a normal variable in Verilog?</summary><div class="answer">A parameter is a compile-time constant that configures a module's structure (like bus width) and can be overridden by the instantiating module — it has no runtime existence in the hardware itself, unlike a signal.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="viva-questions" data-nav="Viva questions">
+    <h2>Viva Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>In an if/else if chain, which condition is checked first?</summary><div class="answer">The first one listed — conditions are checked strictly top to bottom, in priority order.</div></details></li>
+      <li><details class="qa"><summary>What keyword declares the loop variable used inside a generate block?</summary><div class="answer">genvar.</div></details></li>
+      <li><details class="qa"><summary>Can a localparam be overridden from outside its module?</summary><div class="answer">No — unlike parameter, localparam values are fixed and cannot be overridden at instantiation.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="assignments" data-nav="Assignments & answers">
+    <h2>Assignments</h2>
+    <p>1. Extend the mini_alu to support 8 operations using a 3-bit opcode. 2. Instantiate the ripple_adder module at widths 4, 8, and 16, and describe (conceptually) how the internal carry chain length changes each time. 3. Write a generate block that creates N independent D flip-flops (Chapter 10) forming a simple parallel register, each bit driven by a corresponding bit of an input bus.</p>
+    <details class="qa" style="margin-top:16px;">
+      <summary>Reveal Answers to Practice Questions</summary>
+      <div class="answer">
+        1) Without a default, the tool doesn't know what value to hold for unlisted cases, forcing it to insert memory (a latch) to preserve the last value — almost always an unintended, buggy result.<br>
+        2) It uses the default value declared in the parameter statement (N = 4), building a standard 4-bit adder.<br>
+        3) Both styles work identically in simulation; if/else if can feel more natural for a small number of conditions, while case scales more cleanly and readably as the number of options grows.<br>
+        4) parameter can be overridden by the module that instantiates it (e.g., #(.N(8))); localparam is fixed internally and can never be overridden from outside.
+      </div>
+    </details>
+  </section>
+
+  <div class="footer-nav">
+    <a href="chapter-10.html"><span class="lbl">← BACK</span>always blocks, initial, operators</a>
+    <a href="chapter-12.html" class="next"><span class="lbl">NEXT</span>Tasks, Functions, Testbenches & Simulation</a>
+  </div>
+
+</article>
+</div>
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">↑</button>
+
+<script>window.CURRENT_CHAPTER_ID = "ch-11";</script>
+<script src="shared/nav.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => { const t = document.getElementById("reading-time"); const t2 = document.getElementById("reading-time-2"); if(t && t2){ const obs = new MutationObserver(()=>{ t2.textContent = t.textContent; }); obs.observe(t, {childList:true}); } });</script>
+</body>
+</html>
