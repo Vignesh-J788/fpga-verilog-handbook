@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 13 · Blocking vs Non-blocking, Synthesis vs RTL vs Timing — FPGA & Verilog Handbook</title>
+<link rel="stylesheet" href="shared/styles.css">
+<style>
+  .blockbox{ fill:#141b26; stroke:#3b82f6; stroke-width:2; }
+  .blocklbl{ fill:#dbe6f0; font-family:ui-monospace,monospace; font-size:13px; }
+  .pinlbl{ fill:#93a4b8; font-family:ui-monospace,monospace; font-size:11.5px; }
+  .wire{ stroke:#93a4b8; stroke-width:2; fill:none; }
+</style>
+</head>
+<body>
+<div class="board-grid"></div>
+
+<div class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Open chapter menu"><span></span><span></span><span></span></button>
+  <div class="topbar-title"><b>Chapter 13</b> · Blocking vs Non-blocking, Synthesis vs RTL vs Timing</div>
+  <div class="topbar-right"><span id="reading-time" class="dim" style="font-family:var(--font-mono);font-size:12px;"></span></div>
+</div>
+<div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="logo">◈ FPGA & VERILOG HANDBOOK</div>
+    <div class="tag">From absolute zero to a working FPGA board</div>
+  </div>
+  <div class="sidebar-search"><input type="text" id="sidebar-search-input" placeholder="Search chapters..."></div>
+  <div class="sidebar-group" id="sidebar-list"></div>
+</nav>
+
+<div class="page-wrap">
+<article class="sheet">
+
+  <div class="eyebrow">Part 3 · Verilog HDL From Zero — Chapter 13 (Final chapter of Part 3)</div>
+  <h1 class="h-title">Blocking vs Non-blocking, Synthesis vs RTL vs Timing</h1>
+  <p class="h-sub">We promised back in Chapter 10 that <code>=</code> vs <code>&lt;=</code> genuinely matters. Here's the full explanation — plus the concepts (RTL, synthesis, timing) that connect everything you've written in Part 3 to the real silicon from Part 2.</p>
+  <div class="meta-row"><span>📖 Intermediate Level</span><span>🕐 <span id="reading-time-2">—</span></span><span>🧩 9 sections</span></div>
+
+  <section class="chapter-section" id="blocking" data-nav="Blocking assignment (=)">
+    <h2>Blocking Assignment (<code>=</code>)</h2>
+    <p>A blocking assignment executes immediately and completely before the next statement in the same block even begins — exactly like ordinary C code, top to bottom, one at a time. Each statement "blocks" the next one from starting until it's finished.</p>
+    <div class="codeblock">
+      <div class="code-head"><span>verilog · blocking assignment, order matters</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">always</span> @(*) <span class="kw">begin</span>
+    <span class="id">temp</span> = <span class="id">a</span> & <span class="id">b</span>;   <span class="cmt">// step 1: temp is computed and updated FIRST</span>
+    <span class="id">y</span>    = <span class="id">temp</span> | <span class="id">c</span>;   <span class="cmt">// step 2: this line sees the NEW temp from step 1</span>
+<span class="kw">end</span></pre>
+    </div>
+    <p>This sequential, "each line finishes before the next starts" behavior is exactly what you want for combinational logic, where one signal's value often genuinely depends on another signal computed earlier in the same block.</p>
+  </section>
+
+  <section class="chapter-section" id="nonblocking" data-nav="Non-blocking assignment (<=)">
+    <h2>Non-blocking Assignment (<code>&lt;=</code>)</h2>
+    <p>A non-blocking assignment works completely differently: <b>every</b> right-hand side in the block is evaluated first, using the values that existed <i>before</i> the block started running — and only after every line has been evaluated do all the updates get applied, <b>simultaneously</b>, at the very end of that time step.</p>
+    <div class="callout">
+      <div class="callout-title">Why this genuinely matters</div>
+      This is exactly how real flip-flops behave in physical hardware: every flip-flop in a design samples its input at the exact same clock edge, using whatever value existed the instant <i>before</i> that edge — none of them can "see" another flip-flop's brand new value early. Non-blocking assignment is Verilog's way of faithfully modeling that genuine hardware parallelism (Chapter 5's edge-triggered behavior).
+    </div>
+  </section>
+
+  <section class="chapter-section" id="swap-example" data-nav="The classic swap example">
+    <h2>The Classic Example That Makes It Click: Swapping Two Registers</h2>
+    <p>Nothing explains this distinction better than trying to swap two flip-flops' values on a clock edge. Watch what happens with each assignment type:</p>
+    <div class="grid-2">
+      <div class="callout warn">
+        <div class="callout-title">Using = (blocking) — BROKEN swap</div>
+        <div class="codeblock" style="margin:10px 0 0;">
+          <pre><span class="kw">always</span> @(<span class="kw">posedge</span> <span class="id">clk</span>) <span class="kw">begin</span>
+    <span class="id">a</span> = <span class="id">b</span>;   <span class="cmt">// a immediately becomes b</span>
+    <span class="id">b</span> = <span class="id">a</span>;   <span class="cmt">// but a is ALREADY b now!</span>
+<span class="kw">end</span></pre>
+        </div>
+        <p style="margin:10px 0 0;">Line 2 sees the <i>already-updated</i> <code>a</code> (which is now equal to <code>b</code>), so <code>b</code> just gets set to itself. Result: <b>both</b> <code>a</code> and <code>b</code> end up equal to the original <code>b</code> — the swap silently fails.</p>
+      </div>
+      <div class="callout good">
+        <div class="callout-title">Using &lt;= (non-blocking) — CORRECT swap</div>
+        <div class="codeblock" style="margin:10px 0 0;">
+          <pre><span class="kw">always</span> @(<span class="kw">posedge</span> <span class="id">clk</span>) <span class="kw">begin</span>
+    <span class="id">a</span> <= <span class="id">b</span>;   <span class="cmt">// scheduled: uses OLD b</span>
+    <span class="id">b</span> <= <span class="id">a</span>;   <span class="cmt">// scheduled: uses OLD a</span>
+<span class="kw">end</span></pre>
+        </div>
+        <p style="margin:10px 0 0;">Both right-hand sides are read using their <i>original</i> values <b>before</b> either update is applied, and then both updates happen together. Result: <code>a</code> correctly becomes the old <code>b</code>, and <code>b</code> correctly becomes the old <code>a</code> — a genuine swap, in a single clock edge.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="the-rule" data-nav="The industry-standard rule">
+    <h2>The Industry-Standard Rule (Follow This Always)</h2>
+    <div class="callout good">
+      <div class="callout-title">Memorize this pairing</div>
+      <ul style="margin:6px 0 0;">
+        <li>Inside <code>always @(*)</code> (combinational logic) → always use <code>=</code> (blocking).</li>
+        <li>Inside <code>always @(posedge clk)</code> (sequential/clocked logic) → always use <code>&lt;=</code> (non-blocking).</li>
+        <li><b>Never mix</b> both assignment types on the same signal, and avoid mixing them within the same always block in general.</li>
+      </ul>
+    </div>
+    <p>Every single sequential example from Chapters 10 and 11 (the D flip-flop, the T flip-flop) already followed this rule correctly — now you know exactly why.</p>
+  </section>
+
+  <section class="chapter-section" id="rtl" data-nav="What is RTL?">
+    <h2>What Is RTL (Register Transfer Level)?</h2>
+    <p>Everything you've written in Part 3 exists at a level of abstraction called <b>RTL — Register Transfer Level</b>. RTL describes a design in terms of <b>registers</b> (the flip-flops/memory holding state, Chapter 5) and the <b>combinational logic that transfers/transforms data between them</b> on each clock cycle. You never had to describe individual transistors or even individual gates — you described <i>behavior</i> ("on a clock edge, q becomes d"; "y is always a AND b"), and left the exact gate-level implementation to a tool.</p>
+  </section>
+
+  <section class="chapter-section" id="synthesis" data-nav="What is synthesis?">
+    <h2>What Is Synthesis?</h2>
+    <p><b>Synthesis</b> is the automated process that takes your RTL Verilog code and converts it into an actual <b>gate-level netlist</b> — a real, specific list of LUTs, flip-flops, and interconnections (Chapter 7) that will physically implement your described behavior on the target FPGA. This is the single most important translation step in the entire flow: it's how "q <= d;" written in a text file becomes a real, physical flip-flop wired into silicon.</p>
+    <div class="callout warn">
+      <div class="callout-title">Simulation ≠ Synthesis — a warning worth remembering</div>
+      Code that behaves correctly in simulation isn't automatically guaranteed to synthesize into the hardware you expect. Common traps: an incomplete <code>if</code>/<code>case</code> with no <code>default</code> (Chapter 11) accidentally infers a latch; using non-synthesizable constructs (like <code>#10</code> delays or <code>$display</code>) inside code meant for real hardware, rather than a testbench; or relying on simulation-only initial values for registers that real hardware won't have. This is exactly why Vivado (Chapter 24) provides both a simulator <i>and</i> a separate synthesis step — and why professional teams always check both.
+    </div>
+  </section>
+
+  <section class="chapter-section" id="timing" data-nav="Timing: setup, hold, critical path">
+    <h2>Timing: Setup Time, Hold Time, and the Critical Path</h2>
+    <p>Once your design is real hardware, a new, very physical question appears: <b>how fast can the clock actually tick</b> before things start failing? Answering this requires three timing concepts:</p>
+    <ul>
+      <li><b>Propagation delay</b> — the real, physical time combinational logic takes to settle after its inputs change (nothing is truly instant in real hardware, unlike in our idealized theory chapters).</li>
+      <li><b>Setup time</b> — a flip-flop needs its data input to be stable for a small window <i>before</i> the clock edge arrives, or it may capture the wrong value or an undefined result.</li>
+      <li><b>Hold time</b> — the data input must also stay stable for a small window <i>after</i> the clock edge, for the same reason.</li>
+    </ul>
+    <figure class="diagram">
+      <svg viewBox="0 0 480 190" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <rect x="20" y="60" width="80" height="50" rx="6" class="blockbox"/><text x="35" y="90" class="blocklbl">FF1</text>
+        <line x1="100" y1="85" x2="180" y2="85" class="wire"/>
+        <rect x="180" y="60" width="120" height="50" rx="6" fill="#141b26" stroke="#f5a524" stroke-width="2"/><text x="192" y="90" class="blocklbl">combinational logic</text>
+        <line x1="300" y1="85" x2="380" y2="85" class="wire"/>
+        <rect x="380" y="60" width="80" height="50" rx="6" class="blockbox"/><text x="395" y="90" class="blocklbl">FF2</text>
+        <text x="130" y="140" class="pinlbl" fill="#f5a524">propagation delay through this path</text>
+        <text x="30" y="140" class="pinlbl" fill="#93a4b8">clk-to-q delay</text>
+        <text x="385" y="140" class="pinlbl" fill="#93a4b8">needs setup time here</text>
+      </svg>
+      <figcaption>The "critical path": clk-to-q delay out of FF1 + combinational propagation delay + FF2's required setup time must all fit inside one clock period.</figcaption>
+    </figure>
+    <div class="callout">
+      <div class="callout-title">The critical path — the single number that limits your clock speed</div>
+      The <b>critical path</b> is the slowest such route anywhere in your entire design — the one combination of clk-to-q delay + combinational delay + setup time that takes the longest. Your clock period must be <i>at least</i> that long, or the receiving flip-flop might sample garbage. This is precisely what Vivado's timing analysis (Chapter 24) calculates automatically, reporting your design's <b>maximum safe clock frequency</b>.
+    </div>
+  </section>
+
+  <section class="chapter-section" id="summary" data-nav="Summary & key points">
+    <h2>Summary</h2>
+    <p>Blocking assignment (<code>=</code>) executes statements sequentially, each one finishing before the next starts — correct for combinational (<code>always @(*)</code>) logic. Non-blocking assignment (<code>&lt;=</code>) evaluates every right-hand side using pre-block values first, then applies all updates simultaneously — correctly modeling real parallel flip-flop behavior, and essential inside clocked (<code>always @(posedge clk)</code>) blocks. Your RTL Verilog code describes behavior at the register/combinational-logic level; synthesis translates that RTL into a real gate-level netlist of LUTs and flip-flops. Once real, physical timing (propagation delay, setup time, hold time) determines your design's maximum safe clock frequency, governed by the slowest route through the design — the critical path.</p>
+    <h3>Key Points</h3>
+    <ul>
+      <li>= (blocking): sequential, one line finishes before the next starts — use in combinational blocks.</li>
+      <li>&lt;= (non-blocking): all RHS evaluated first with old values, updates applied together — use in clocked blocks.</li>
+      <li>RTL = describing a design via registers + the combinational logic between them.</li>
+      <li>Synthesis = converting RTL Verilog into a real gate-level netlist for the target FPGA.</li>
+      <li>Critical path = the slowest signal route in the design; it sets the maximum safe clock frequency.</li>
+    </ul>
+    <div class="mem-trick"><b>Memory Trick:</b> "Blocking blocks the next line until it's done — like a queue, one at a time. Non-blocking doesn't block anyone — everyone reads the old values first, then updates together, just like real flip-flops on a clock edge."</div>
+  </section>
+
+  <section class="chapter-section" id="practice-questions" data-nav="Practice questions">
+    <h2>Practice Questions</h2>
+    <ol>
+      <li>Trace through, line by line, what values <code>a</code> and <code>b</code> end up with if both start at <code>a=1, b=2</code> and the block uses <code>a=b; b=a;</code> (blocking).</li>
+      <li>Now trace the same starting values using <code>a&lt;=b; b&lt;=a;</code> (non-blocking).</li>
+      <li>What is a critical path, and why does it determine a design's maximum clock frequency?</li>
+      <li>Why might code that simulates correctly still fail to synthesize as intended?</li>
+    </ol>
+  </section>
+
+  <section class="chapter-section" id="interview-questions" data-nav="Interview questions">
+    <h2>Interview Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>Why should non-blocking assignment always be used for sequential (clocked) logic?</summary><div class="answer">Because it correctly models how real flip-flops behave — all of them sample their inputs using pre-edge values simultaneously, with no flip-flop able to see another's newly updated value early. Blocking assignment can create race conditions and incorrect behavior (as in the swap example) when used for this purpose.</div></details></li>
+      <li><details class="qa"><summary>What is the difference between RTL and a gate-level netlist?</summary><div class="answer">RTL describes behavior in terms of registers and the combinational logic transferring data between them, at a relatively high level of abstraction. A gate-level netlist is the fully synthesized, concrete list of actual gates/LUTs/flip-flops and their exact interconnections that implement that RTL behavior on real hardware.</div></details></li>
+      <li><details class="qa"><summary>What determines a synthesized design's maximum clock frequency?</summary><div class="answer">The critical path — the slowest route through the design, combining clock-to-output delay, combinational propagation delay, and the receiving flip-flop's setup time — must fit within one clock period; this longest path sets the upper limit on safe clock speed.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="viva-questions" data-nav="Viva questions">
+    <h2>Viva Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>Which assignment operator is used for blocking assignment?</summary><div class="answer">= (equals sign)</div></details></li>
+      <li><details class="qa"><summary>Which assignment operator is used for non-blocking assignment?</summary><div class="answer">&lt;= </div></details></li>
+      <li><details class="qa"><summary>What does "setup time" refer to?</summary><div class="answer">The minimum time a flip-flop's data input must remain stable before the active clock edge for it to be reliably captured.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="assignments" data-nav="Assignments & answers">
+    <h2>Assignments</h2>
+    <p>1. Write both a blocking and a non-blocking version of a 3-register shift (a←b, b←c, c←a) and trace through the results by hand for each. 2. Explain, in 100+ words, why mixing blocking and non-blocking assignments within the same always block is considered risky/bad practice. 3. Research (or estimate from datasheet-style numbers) what a "timing constraint" file (.xdc) is used for in Vivado, previewing Chapter 24.</p>
+    <details class="qa" style="margin-top:16px;">
+      <summary>Reveal Answers to Practice Questions</summary>
+      <div class="answer">
+        1) Blocking: a=b makes a=2; then b=a makes b=2 (using the already-updated a). Final: a=2, b=2 — the swap fails, both end up equal to the original b.<br>
+        2) Non-blocking: both RHS values (b=2, a=1) are read first, then applied together. Final: a=2 (old b), b=1 (old a) — a correct swap.<br>
+        3) Because it's the single longest delay path in the entire design; the clock period must be at least as long as this path's total delay (clk-to-q + combinational delay + setup time), or the receiving flip-flop may capture an incorrect or undefined value.<br>
+        4) Simulators are often more forgiving and can produce "reasonable-looking" results even for code with subtle issues (like incomplete case statements or unintended latches) that a real synthesis tool interprets completely differently when mapping to actual hardware primitives.
+      </div>
+    </details>
+  </section>
+
+  <div class="footer-nav">
+    <a href="chapter-12.html"><span class="lbl">← BACK</span>Tasks, Functions, Testbenches & Simulation</a>
+    <a href="chapter-14.html" class="next"><span class="lbl">NEXT</span>Gate-Level vs Dataflow vs Behavioral Modeling</a>
+  </div>
+
+</article>
+</div>
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">↑</button>
+
+<script>window.CURRENT_CHAPTER_ID = "ch-13";</script>
+<script src="shared/nav.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => { const t = document.getElementById("reading-time"); const t2 = document.getElementById("reading-time-2"); if(t && t2){ const obs = new MutationObserver(()=>{ t2.textContent = t.textContent; }); obs.observe(t, {childList:true}); } });</script>
+</body>
+</html>
