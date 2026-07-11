@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 19 · Comparator & Seven-Segment Decoder — FPGA & Verilog Handbook</title>
+<link rel="stylesheet" href="shared/styles.css">
+<style>
+  .seg-on{ stroke:#f5a524; stroke-width:8; }
+  .seg-off{ stroke:#1e2836; stroke-width:8; }
+</style>
+</head>
+<body>
+<div class="board-grid"></div>
+
+<div class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Open chapter menu"><span></span><span></span><span></span></button>
+  <div class="topbar-title"><b>Chapter 19</b> · Comparator & Seven-Segment Decoder</div>
+  <div class="topbar-right"><span id="reading-time" class="dim" style="font-family:var(--font-mono);font-size:12px;"></span></div>
+</div>
+<div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="logo">◈ FPGA & VERILOG HANDBOOK</div>
+    <div class="tag">From absolute zero to a working FPGA board</div>
+  </div>
+  <div class="sidebar-search"><input type="text" id="sidebar-search-input" placeholder="Search chapters..."></div>
+  <div class="sidebar-group" id="sidebar-list"></div>
+</nav>
+
+<div class="page-wrap">
+<article class="sheet">
+
+  <div class="eyebrow">Part 5 · Verilog Programs — Chapter 19 (Last individual-circuit chapter before flip-flops)</div>
+  <h1 class="h-title">Comparator & Seven-Segment Decoder</h1>
+  <p class="h-sub">Two genuinely useful, very "real" circuits: a comparator (does Verilog even need gate-level logic for this?) and a seven-segment decoder — the circuit behind every digital clock and calculator display you've ever seen.</p>
+  <div class="meta-row"><span>📖 Beginner Level</span><span>🕐 <span id="reading-time-2">—</span></span><span>🧩 6 sections</span></div>
+
+  <section class="chapter-section" id="comparator-1bit" data-nav="1-bit Comparator">
+    <h2>1-Bit Comparator</h2>
+    <p>A comparator answers one of three questions about two numbers: is A greater than B, less than B, or equal to B? At the 1-bit level, built from gates you already know:</p>
+    <div class="codeblock">
+      <div class="code-head"><span>comparator_1bit.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">comparator_1bit</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">a</span>, <span class="id">b</span>,
+    <span class="kw">output</span> <span class="typ">wire</span> <span class="id">gt</span>, <span class="id">lt</span>, <span class="id">eq</span>
+);
+    <span class="kw">assign</span> <span class="id">gt</span> = <span class="id">a</span> & ~<span class="id">b</span>;    <span class="cmt">// a=1, b=0 -> a is greater</span>
+    <span class="kw">assign</span> <span class="id">lt</span> = ~<span class="id">a</span> & <span class="id">b</span>;    <span class="cmt">// a=0, b=1 -> a is less</span>
+    <span class="kw">assign</span> <span class="id">eq</span> = <span class="id">a</span> ~^ <span class="id">b</span>;    <span class="cmt">// XNOR -> equal when both bits match</span>
+<span class="kw">endmodule</span></pre>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="comparator-4bit" data-nav="4-bit Comparator (the easy way)">
+    <h2>4-Bit Comparator — Where Verilog Spoils You</h2>
+    <p>Scaling a gate-built comparator to 4 bits normally requires cascading logic — comparing MSBs first, then breaking ties with the next bit down, and so on. Verilog's built-in relational operators (Chapter 10) do all of that cascading for you automatically:</p>
+    <div class="codeblock">
+      <div class="code-head"><span>comparator_4bit.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">comparator_4bit</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> [3:0] <span class="id">a</span>, <span class="id">b</span>,
+    <span class="kw">output</span> <span class="typ">wire</span> <span class="id">gt</span>, <span class="id">lt</span>, <span class="id">eq</span>
+);
+    <span class="kw">assign</span> <span class="id">gt</span> = (<span class="id">a</span> > <span class="id">b</span>);
+    <span class="kw">assign</span> <span class="id">lt</span> = (<span class="id">a</span> < <span class="id">b</span>);
+    <span class="kw">assign</span> <span class="id">eq</span> = (<span class="id">a</span> == <span class="id">b</span>);
+<span class="kw">endmodule</span></pre>
+    </div>
+    <div class="callout good">
+      <div class="callout-title">Important lesson: knowing the theory still matters</div>
+      Writing <code>a > b</code> feels almost too easy — but understanding the cascaded gate-level logic hiding underneath it (which Chapter 4 introduced conceptually) is exactly what lets you reason about <i>why</i> a wide comparator has a longer critical path (Chapter 13) than a narrow one, and why the synthesis tool needs real silicon area to build it. Never let a convenient operator hide the real hardware cost from your thinking.
+    </div>
+    <div class="codeblock">
+      <div class="code-head"><span>comparator_4bit_tb.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">comparator_4bit_tb</span>;
+    <span class="typ">reg</span> [3:0] <span class="id">a</span>, <span class="id">b</span>;
+    <span class="typ">wire</span>      <span class="id">gt</span>, <span class="id">lt</span>, <span class="id">eq</span>;
+
+    <span class="id">comparator_4bit</span> <span class="id">uut</span> (.<span class="id">a</span>(<span class="id">a</span>), .<span class="id">b</span>(<span class="id">b</span>), .<span class="id">gt</span>(<span class="id">gt</span>), .<span class="id">lt</span>(<span class="id">lt</span>), .<span class="id">eq</span>(<span class="id">eq</span>));
+
+    <span class="kw">initial</span> <span class="kw">begin</span>
+        <span class="id">a</span>=4'<span class="typ">d</span><span class="num">5</span>; <span class="id">b</span>=4'<span class="typ">d</span><span class="num">9</span>; #10;   <span class="cmt">// expect lt=1</span>
+        <span class="id">a</span>=4'<span class="typ">d</span><span class="num">9</span>; <span class="id">b</span>=4'<span class="typ">d</span><span class="num">5</span>; #10;   <span class="cmt">// expect gt=1</span>
+        <span class="id">a</span>=4'<span class="typ">d</span><span class="num">7</span>; <span class="id">b</span>=4'<span class="typ">d</span><span class="num">7</span>; #10;   <span class="cmt">// expect eq=1</span>
+        <span class="kw">$finish</span>;
+    <span class="kw">end</span>
+
+    <span class="kw">initial</span> <span class="kw">$monitor</span>(<span class="str">"t=%0t a=%0d b=%0d -> gt=%b lt=%b eq=%b"</span>, <span class="kw">$time</span>, <span class="id">a</span>, <span class="id">b</span>, <span class="id">gt</span>, <span class="id">lt</span>, <span class="id">eq</span>);
+<span class="kw">endmodule</span></pre>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="sevenseg-theory" data-nav="Seven-Segment Display basics">
+    <h2>How a Seven-Segment Display Actually Works</h2>
+    <p>A seven-segment display is simply 7 individual LED bars (labeled <b>a</b> through <b>g</b> by long-standing convention), arranged to form a figure-8, plus sometimes an 8th "dot" segment. Lighting up the correct combination of segments draws any digit 0–9.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 160 220" width="180" xmlns="http://www.w3.org/2000/svg">
+        <line x1="30" y1="20" x2="90" y2="20" class="seg-on" stroke-linecap="round"/><text x="55" y="12" fill="#93a4b8" font-size="11" font-family="ui-monospace,monospace">a</text>
+        <line x1="95" y1="25" x2="95" y2="95" class="seg-on" stroke-linecap="round"/><text x="105" y="65" fill="#93a4b8" font-size="11" font-family="ui-monospace,monospace">b</text>
+        <line x1="95" y1="105" x2="95" y2="175" class="seg-on" stroke-linecap="round"/><text x="105" y="145" fill="#93a4b8" font-size="11" font-family="ui-monospace,monospace">c</text>
+        <line x1="30" y1="180" x2="90" y2="180" class="seg-on" stroke-linecap="round"/><text x="55" y="200" fill="#93a4b8" font-size="11" font-family="ui-monospace,monospace">d</text>
+        <line x1="25" y1="105" x2="25" y2="175" class="seg-off" stroke-linecap="round"/><text x="5" y="145" fill="#5b6b80" font-size="11" font-family="ui-monospace,monospace">e</text>
+        <line x1="25" y1="25" x2="25" y2="95" class="seg-on" stroke-linecap="round"/><text x="5" y="65" fill="#93a4b8" font-size="11" font-family="ui-monospace,monospace">f</text>
+        <line x1="30" y1="100" x2="90" y2="100" class="seg-on" stroke-linecap="round"/><text x="55" y="93" fill="#93a4b8" font-size="11" font-family="ui-monospace,monospace">g</text>
+      </svg>
+      <figcaption>Segment naming convention (this example is lit to show the digit "9": a,b,c,d,f,g on, e off)</figcaption>
+    </figure>
+    <p>Turning a BCD (Binary-Coded Decimal — a 4-bit number representing digits 0–9, Chapter 1) value into the right 7-segment pattern is exactly a decoder (Chapter 18): 4 inputs in, 7 outputs, with a fixed, memorized mapping table.</p>
+  </section>
+
+  <section class="chapter-section" id="sevenseg-code" data-nav="Seven-Segment Decoder code">
+    <h2>The Seven-Segment Decoder</h2>
+    <div class="codeblock">
+      <div class="code-head"><span>seven_seg_decoder.v — seg = {a,b,c,d,e,f,g}, active-HIGH (1 = segment lit)</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">seven_seg_decoder</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> [3:0] <span class="id">bcd</span>,
+    <span class="kw">output</span> <span class="typ">reg</span>  [6:0] <span class="id">seg</span>
+);
+    <span class="kw">always</span> @(*) <span class="kw">begin</span>
+        <span class="kw">case</span> (<span class="id">bcd</span>)
+            4'<span class="typ">d</span>0: <span class="id">seg</span> = 7'<span class="typ">b</span><span class="num">1111110</span>;
+            4'<span class="typ">d</span>1: <span class="id">seg</span> = 7'<span class="typ">b</span><span class="num">0110000</span>;
+            4'<span class="typ">d</span>2: <span class="id">seg</span> = 7'<span class="typ">b</span><span class="num">1101101</span>;
+            4'<span class="typ">d</span>3: <span class="id">seg</span> = 7'<span class="typ">b</span><span class="num">1111001</span>;
+            4'<span class="typ">d</span>4: <span class="id">seg</span> = 7'<span class="typ">b</span><span class="num">0110011</span>;
+            4'<span class="typ">d</span>5: <span class="id">seg</span> = 7'<span class="typ">b</span><span class="num">1011011</span>;
+            4'<span class="typ">d</span>6: <span class="id">seg</span> = 7'<span class="typ">b</span><span class="num">1011111</span>;
+            4'<span class="typ">d</span>7: <span class="id">seg</span> = 7'<span class="typ">b</span><span class="num">1110000</span>;
+            4'<span class="typ">d</span>8: <span class="id">seg</span> = 7'<span class="typ">b</span><span class="num">1111111</span>;
+            4'<span class="typ">d</span>9: <span class="id">seg</span> = 7'<span class="typ">b</span><span class="num">1111011</span>;
+            <span class="kw">default</span>: <span class="id">seg</span> = 7'<span class="typ">b</span><span class="num">0000000</span>;  <span class="cmt">// 10-15 are invalid BCD -> blank display</span>
+        <span class="kw">endcase</span>
+    <span class="kw">end</span>
+<span class="kw">endmodule</span></pre>
+    </div>
+    <div class="callout warn">
+      <div class="callout-title">Active-HIGH vs Active-LOW displays</div>
+      This code assumes a <b>common-cathode</b> display, where writing a <code>1</code> lights a segment. Many real boards instead use a <b>common-anode</b> display, where a segment lights when driven <code>0</code> — for those, simply invert the whole output: <code>assign seg_active_low = ~seg;</code> Always check your specific board's schematic (Chapter 26) before wiring this up for real.
+    </div>
+  </section>
+
+  <section class="chapter-section" id="sevenseg-testbench" data-nav="Seven-Segment testbench">
+    <h2>Testbench — Sweeping Every BCD Digit</h2>
+    <div class="codeblock">
+      <div class="code-head"><span>seven_seg_tb.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">seven_seg_tb</span>;
+    <span class="typ">reg</span> [3:0] <span class="id">bcd</span>;
+    <span class="typ">wire</span> [6:0] <span class="id">seg</span>;
+
+    <span class="id">seven_seg_decoder</span> <span class="id">uut</span> (.<span class="id">bcd</span>(<span class="id">bcd</span>), .<span class="id">seg</span>(<span class="id">seg</span>));
+
+    <span class="typ">integer</span> <span class="id">i</span>;
+    <span class="kw">initial</span> <span class="kw">begin</span>
+        <span class="kw">for</span> (<span class="id">i</span> = 0; <span class="id">i</span> < 16; <span class="id">i</span> = <span class="id">i</span> + 1) <span class="kw">begin</span>
+            <span class="id">bcd</span> = <span class="id">i</span>[3:0];
+            #10;
+            <span class="kw">$display</span>(<span class="str">"bcd=%0d -> seg=%b"</span>, <span class="id">bcd</span>, <span class="id">seg</span>);
+        <span class="kw">end</span>
+        <span class="kw">$finish</span>;
+    <span class="kw">end</span>
+<span class="kw">endmodule</span></pre>
+    </div>
+    <p>Sweeping all 16 possible 4-bit values (not just 0–9) is deliberate — it confirms the <code>default</code> branch correctly blanks the display for the 6 impossible BCD codes (10–15), rather than showing garbage.</p>
+  </section>
+
+  <section class="chapter-section" id="common-mistakes" data-nav="Common mistakes">
+    <h2>Common Mistakes</h2>
+    <ul>
+      <li>Forgetting to check active-HIGH vs active-LOW for your specific display hardware — an inverted display shows the complement of every digit, looking like nonsense.</li>
+      <li>Mixing up segment bit order (some datasheets order segments differently than <code>{a,b,c,d,e,f,g}</code>) — always check your board's actual pin mapping.</li>
+      <li>Using <code>&gt;</code>/<code>&lt;</code> on signed vs unsigned values without realizing Verilog's default interpretation, causing unexpected comparison results for negative numbers.</li>
+      <li>Not testing the "invalid input" range (10-15 for BCD) — exactly the kind of edge case a thorough testbench (sweeping the <i>entire</i> input space) catches automatically.</li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="summary" data-nav="Summary & exercises">
+    <h2>Summary</h2>
+    <p>A comparator can be built explicitly from gates for 1 bit, but Verilog's relational operators (<code>&gt;</code>, <code>&lt;</code>, <code>==</code>) handle the cascading logic automatically for wider comparisons — understanding the underlying gate cost still matters for reasoning about timing (Chapter 13). A seven-segment decoder is a decoder (Chapter 18) mapping BCD digits to a fixed 7-bit lit-segment pattern, and must account for active-HIGH vs active-LOW display hardware, with invalid BCD codes explicitly blanked.</p>
+  </section>
+
+  <section class="chapter-section" id="interview-questions" data-nav="Interview questions">
+    <h2>Interview Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>Why might you still study gate-level comparator design when Verilog's `>` operator does it automatically?</summary><div class="answer">Understanding the underlying cascaded gate structure explains why wider comparators have longer critical paths and higher hardware cost (Chapter 13), which matters when reasoning about timing and area even though the operator itself hides that complexity.</div></details></li>
+      <li><details class="qa"><summary>What's the difference between common-anode and common-cathode seven-segment displays?</summary><div class="answer">On a common-cathode display, driving a segment HIGH lights it; on a common-anode display, driving a segment LOW lights it — the decoder's output must be inverted (or not) depending on which hardware type is used.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="viva-questions" data-nav="Viva questions">
+    <h2>Viva Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>How many segments does a standard seven-segment display have (excluding the decimal point)?</summary><div class="answer">7, labeled a through g.</div></details></li>
+      <li><details class="qa"><summary>What should a seven-segment decoder output for an invalid BCD input like 4'b1100 (12)?</summary><div class="answer">A blank display (all segments off), handled via the default case.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="exercises" data-nav="Exercises">
+    <h2>Exercises</h2>
+    <p>1. Extend comparator_4bit into an 8-bit version and test at least 4 pairs including an equal case. 2. Add an 8th "decimal point" segment output to seven_seg_decoder, controllable by a separate dp input. 3. Write a gate-level (not relational-operator) 2-bit comparator by hand, deriving its Boolean equations via truth table and K-map (Chapters 3–4), and confirm it matches the relational-operator version via testbench.</p>
+  </section>
+
+  <div class="footer-nav">
+    <a href="chapter-18.html"><span class="lbl">← BACK</span>Encoder, Decoder & Priority Encoder</a>
+    <a href="chapter-20.html" class="next"><span class="lbl">NEXT</span>Flip-Flops (SR, D, JK, T)</a>
+  </div>
+
+</article>
+</div>
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">↑</button>
+
+<script>window.CURRENT_CHAPTER_ID = "ch-19";</script>
+<script src="shared/nav.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => { const t = document.getElementById("reading-time"); const t2 = document.getElementById("reading-time-2"); if(t && t2){ const obs = new MutationObserver(()=>{ t2.textContent = t.textContent; }); obs.observe(t, {childList:true}); } });</script>
+</body>
+</html>
