@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 5 · Sequential Circuits — FPGA & Verilog Handbook</title>
+<link rel="stylesheet" href="shared/styles.css">
+<style>
+  .blockbox{ fill:#141b26; stroke:#3b82f6; stroke-width:2; }
+  .blocklbl{ fill:#dbe6f0; font-family:ui-monospace,monospace; font-size:13px; }
+  .pinlbl{ fill:#93a4b8; font-family:ui-monospace,monospace; font-size:11.5px; }
+  .wire{ stroke:#93a4b8; stroke-width:2; fill:none; }
+</style>
+</head>
+<body>
+<div class="board-grid"></div>
+
+<div class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Open chapter menu"><span></span><span></span><span></span></button>
+  <div class="topbar-title"><b>Chapter 05</b> · Sequential Circuits</div>
+  <div class="topbar-right"><span id="reading-time" class="dim" style="font-family:var(--font-mono);font-size:12px;"></span></div>
+</div>
+<div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="logo">◈ FPGA & VERILOG HANDBOOK</div>
+    <div class="tag">From absolute zero to a working FPGA board</div>
+  </div>
+  <div class="sidebar-search"><input type="text" id="sidebar-search-input" placeholder="Search chapters..."></div>
+  <div class="sidebar-group" id="sidebar-list"></div>
+</nav>
+
+<div class="page-wrap">
+<article class="sheet">
+
+  <div class="eyebrow">Part 1 · Digital Electronics Foundations — Chapter 05 (Final chapter of Part 1)</div>
+  <h1 class="h-title">Sequential Circuits</h1>
+  <p class="h-sub">Every circuit so far has had the memory span of a goldfish — no history, just instant input-to-output. This chapter introduces circuits that <i>remember</i>, which is what makes counters, registers, and every computer's memory possible.</p>
+  <div class="meta-row"><span>📖 Beginner Level</span><span>🕐 <span id="reading-time-2">—</span></span><span>🧩 9 sections</span></div>
+
+  <section class="chapter-section" id="memory-concept" data-nav="Why we need memory">
+    <h2>Why We Need Circuits That Remember</h2>
+    <p>Think about a digital clock on a wall. Right now it shows some time. A second from now, it needs to show one second later — but to know what "one second later" even means, it has to <b>remember</b> what it was showing a moment ago. A purely combinational circuit (Chapter 4) is physically incapable of this — its output only ever depends on its current inputs, with zero memory of anything.</p>
+    <div class="analogy-box">
+      <div class="tag">Analogy · A Person With No Short-Term Memory</div>
+      <p style="margin-bottom:0">Imagine someone who instantly forgets everything the moment it happens — every question you ask them, they answer purely based on what you're saying <i>right now</i>, with zero memory of the conversation so far. They could never count "1, 2, 3, 4..." because counting requires remembering what number came before. A <b>sequential circuit</b> is what gives a digital system that missing short-term memory.</p>
+    </div>
+    <p>Formally: a <b>sequential circuit's</b> output depends on both its <b>current inputs</b> <i>and</i> its <b>current stored state</b> (what it remembers from before). That stored state is called, unsurprisingly, the <b>state</b> of the circuit.</p>
+  </section>
+
+  <section class="chapter-section" id="the-clock" data-nav="The clock signal">
+    <h2>The Clock — A Circuit's Heartbeat</h2>
+    <p>If a circuit is going to change its stored memory, <i>something</i> has to decide exactly <b>when</b> it's allowed to change — otherwise every tiny bit of electrical noise could accidentally corrupt the memory at random moments. That "permission signal" is called the <b>clock</b>: a signal that continuously switches between LOW and HIGH at a perfectly steady, repeating rate.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 500 130" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20,90 L20,30 L90,30 L90,90 L160,90 L160,30 L230,30 L230,90 L300,90 L300,30 L370,30 L370,90 L440,90 L440,30 L480,30" fill="none" stroke="#3b82f6" stroke-width="2.5"/>
+        <circle cx="20" cy="30" r="4" fill="#22d3ee"/><circle cx="160" cy="30" r="4" fill="#22d3ee"/><circle cx="300" cy="30" r="4" fill="#22d3ee"/><circle cx="440" cy="30" r="4" fill="#22d3ee"/>
+        <text x="20" y="18" text-anchor="middle" fill="#22d3ee" font-size="10.5" font-family="ui-monospace,monospace">rising edge</text>
+        <text x="90" y="112" text-anchor="middle" fill="#f5a524" font-size="10.5" font-family="ui-monospace,monospace">falling edge</text>
+        <line x1="20" y1="30" x2="20" y2="105" stroke="#1e2836" stroke-dasharray="3 3"/>
+        <line x1="160" y1="30" x2="160" y2="105" stroke="#1e2836" stroke-dasharray="3 3"/>
+        <text x="90" y="100" text-anchor="middle" fill="#5b6b80" font-size="10.5" font-family="ui-monospace,monospace">◄ one clock period ►</text>
+      </svg>
+      <figcaption>A clock signal: a perfectly steady square wave. The moment it jumps LOW→HIGH is called the "rising edge" — this is usually the exact instant memory is allowed to update.</figcaption>
+    </figure>
+    <p>The speed of this back-and-forth is the <b>clock frequency</b>, measured in Hertz (Hz) — a 100 MHz clock ticks 100 million times every second. Every synchronous digital system — your phone's processor, an FPGA, anything with a "GHz" number in its spec sheet — is built around a clock exactly like this one.</p>
+  </section>
+
+  <section class="chapter-section" id="sr-latch" data-nav="The SR Latch">
+    <h2>The SR Latch — The Simplest Memory Cell</h2>
+    <p>The most basic memory element of all is the <b>SR Latch</b> (Set-Reset Latch), and remarkably, it's built from just <b>two NOR gates</b>, each one feeding its output back into the other's input — a "cross-coupled" pair.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 320 200" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <text x="4" y="34" class="pinlbl">S</text><line x1="16" y1="30" x2="55" y2="30" class="wire"/>
+        <path d="M55,15 C75,15 95,25 110,42 C95,58 75,68 55,68 C67,54 67,26 55,15 Z" fill="#141b26" stroke="#34d399" stroke-width="2.5"/>
+        <circle cx="118" cy="42" r="6" fill="#141b26" stroke="#34d399" stroke-width="2"/>
+        <line x1="124" y1="42" x2="230" y2="42" class="wire"/>
+        <text x="238" y="46" class="pinlbl" fill="#34d399">Q</text>
+
+        <text x="4" y="174" class="pinlbl">R</text><line x1="16" y1="170" x2="55" y2="170" class="wire"/>
+        <path d="M55,155 C75,155 95,145 110,128 C95,112 75,102 55,102 C67,116 67,144 55,155 Z" fill="#141b26" stroke="#f5a524" stroke-width="2.5"/>
+        <circle cx="118" cy="128" r="6" fill="#141b26" stroke="#f5a524" stroke-width="2"/>
+        <line x1="124" y1="128" x2="230" y2="128" class="wire"/>
+        <text x="238" y="132" class="pinlbl" fill="#f5a524">Q'</text>
+
+        <!-- cross feedback -->
+        <path d="M230,42 L250,42 L250,150 L70,150 L70,120" class="wire" fill="none"/>
+        <path d="M230,128 L210,128 L210,20 L70,20 L70,38" class="wire" fill="none"/>
+      </svg>
+      <figcaption>Cross-coupled NOR SR Latch — Q feeds back into the R-gate's second input, and Q' feeds back into the S-gate's second input</figcaption>
+    </figure>
+    <table>
+      <thead><tr><th>S</th><th>R</th><th>Q (next)</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td>0</td><td>Q (no change)</td><td>Hold / remember current state</td></tr>
+        <tr><td>0</td><td>1</td><td>0</td><td>Reset</td></tr>
+        <tr><td>1</td><td>0</td><td>1</td><td>Set</td></tr>
+        <tr><td>1</td><td>1</td><td>Forbidden</td><td>Both outputs try to go LOW — invalid, avoid this input</td></tr>
+      </tbody>
+    </table>
+    <div class="callout warn">
+      <div class="callout-title">The "Hold" row is the entire point</div>
+      Notice the S=0, R=0 row: the output simply <i>stays whatever it already was</i>. That's memory, right there, in its rawest form — the circuit is doing nothing to its inputs, yet still "remembering" its last state because of that feedback loop. Every other memory element in digital electronics — flip-flops, registers, RAM — is fundamentally a more disciplined, clock-controlled descendant of this simple idea.
+    </div>
+  </section>
+
+  <section class="chapter-section" id="latch-vs-flipflop" data-nav="Latch vs Flip-Flop">
+    <h2>Latch vs Flip-Flop — Level-Triggered vs Edge-Triggered</h2>
+    <p>A plain <b>latch</b> (like the SR latch above) is <b>level-triggered</b> — it stays "open" and keeps copying its input to its output for as long as an enable signal is HIGH, and only "freezes" its memory when that enable goes LOW. A <b>flip-flop</b> is <b>edge-triggered</b> — it only ever looks at its input for one single infinitesimal instant: the exact moment the clock ticks (usually the rising edge), and ignores its input completely at all other times.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 520 210" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <text x="4" y="24" class="pinlbl">CLK</text>
+        <path d="M40,40 L40,20 L160,20 L160,40 L280,40 L280,20 L400,20 L400,40 L480,40" fill="none" stroke="#3b82f6" stroke-width="2"/>
+
+        <text x="4" y="84" class="pinlbl">D</text>
+        <path d="M40,90 L40,70 L120,70 L120,90 L200,90 L200,70 L340,70 L340,90 L480,90" fill="none" stroke="#c792ea" stroke-width="2"/>
+
+        <text x="4" y="144" class="pinlbl">LATCH Q</text>
+        <path d="M40,150 L40,130 L120,130 L120,150 L160,150 L160,130 L200,130 L200,150 L280,150 L280,130 L340,130 L340,150 L400,150 L400,130 L480,130" fill="none" stroke="#34d399" stroke-width="2"/>
+        <text x="490" y="134" fill="#34d399" font-size="10" font-family="ui-monospace,monospace">follows D whenever CLK is HIGH</text>
+
+        <text x="4" y="194" class="pinlbl">FLIP-FLOP Q</text>
+        <path d="M40,190 L160,190 L160,170 L400,170 L400,150 L480,150" fill="none" stroke="#f5a524" stroke-width="2"/>
+        <text x="490" y="154" fill="#f5a524" font-size="10" font-family="ui-monospace,monospace">only updates on rising edge</text>
+      </svg>
+      <figcaption>Same D and CLK signals, two different memory behaviors: the latch output wobbles with every D change while CLK is HIGH; the flip-flop output only ever changes right at a rising edge.</figcaption>
+    </figure>
+    <p>This difference matters enormously in real digital design. Edge-triggered flip-flops are what almost all real FPGA and processor designs are built from, because they give a single, predictable, unambiguous moment where data moves — which makes timing analysis (making sure everything settles before the next clock tick) vastly more manageable.</p>
+  </section>
+
+  <section class="chapter-section" id="flipflop-types" data-nav="Flip-flop types (preview)">
+    <h2>The Flip-Flop Family — A Quick Preview</h2>
+    <p>There are four classic flip-flop types. We'll build each one fully in Verilog with testbenches and waveforms in <b>Chapter 20</b> — for now, just get familiar with what each one does:</p>
+    <table>
+      <thead><tr><th>Type</th><th>Behavior</th></tr></thead>
+      <tbody>
+        <tr><td><b>SR Flip-Flop</b></td><td>Clocked version of the SR latch — Set, Reset, Hold, with the same forbidden S=R=1 case.</td></tr>
+        <tr><td><b>D Flip-Flop</b></td><td>The simplest and most-used: output Q simply copies input D, but only at the clock edge. Perfect for registers.</td></tr>
+        <tr><td><b>JK Flip-Flop</b></td><td>Fixes SR's forbidden case — when J=K=1, instead of being invalid, it <b>toggles</b> (flips its output).</td></tr>
+        <tr><td><b>T Flip-Flop</b></td><td>"Toggle" flip-flop — a single input T; when T=1 the output flips every clock edge, when T=0 it holds. The natural building block for counters.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="chapter-section" id="sync-vs-async" data-nav="Synchronous vs Asynchronous">
+    <h2>Synchronous vs Asynchronous Circuits</h2>
+    <p>A <b>synchronous</b> circuit changes its stored state only in step with a shared clock signal — every flip-flop in the system updates together, on the same clock edges, like an orchestra following one conductor. An <b>asynchronous</b> circuit has parts that can change state on their own, independent of any shared clock — like musicians each playing at their own pace with no conductor at all.</p>
+    <p>Almost every practical FPGA design you'll build in this handbook is synchronous, because synchronous designs are dramatically easier to analyze, debug, and guarantee correct — Vivado's timing analysis tools (Chapter 24) are built entirely around this assumption.</p>
+  </section>
+
+  <section class="chapter-section" id="fsm-preview" data-nav="Finite State Machines (preview)">
+    <h2>A Sneak Peek: Finite State Machines (FSMs)</h2>
+    <p>Once you have memory (state) and a clock, you can build a <b>Finite State Machine</b> — a system that is always sitting in exactly one "state" out of a fixed, known set of possible states, and moves to a different state based on its current state plus its current inputs. A traffic light is a perfect real-world FSM: it's always in exactly one state (Red, Yellow, or Green), and a timer input moves it to the next state in a fixed sequence.</p>
+    <div class="callout">
+      <div class="callout-title">Where you'll actually build one</div>
+      We'll design a complete traffic-light controller as a real FSM, in real Verilog, in Chapter 22. For now, just take away the core idea: <b>state + clock + rules for what happens next = a Finite State Machine</b> — one of the single most useful patterns in all of digital design.
+    </div>
+  </section>
+
+  <section class="chapter-section" id="summary" data-nav="Summary & key points">
+    <h2>Summary</h2>
+    <p>Sequential circuits add memory to digital logic — their output depends on both current inputs <i>and</i> a remembered state. A clock provides the steady heartbeat that controls exactly when that memory is allowed to update. The SR latch (two cross-coupled NOR gates) is the simplest possible memory cell, with Set/Reset/Hold behavior and one forbidden input combination. Latches are level-triggered (open the whole time enable is HIGH); flip-flops are edge-triggered (react only at one clock instant), which is why almost all real FPGA designs use flip-flops. The flip-flop family (SR, D, JK, T) each behave slightly differently, and chaining state + clock + transition rules together gives you a Finite State Machine — the pattern behind counters, controllers, and traffic lights alike.</p>
+    <h3>Key Points</h3>
+    <ul>
+      <li>Sequential circuit = f(current inputs, current stored state) — combinational circuits have no state at all.</li>
+      <li>Clock = steady repeating signal that times when memory updates happen.</li>
+      <li>SR Latch: S=1,R=0 → Set. S=0,R=1 → Reset. S=R=0 → Hold. S=R=1 → Forbidden.</li>
+      <li>Latch = level-triggered. Flip-flop = edge-triggered. FPGA designs almost always use flip-flops.</li>
+      <li>D flip-flop is the workhorse of registers; T flip-flop is the workhorse of counters.</li>
+      <li>FSM = state + clock + transition rules.</li>
+    </ul>
+    <div class="mem-trick"><b>Memory Trick:</b> "A LATCH is like an open door — anything can walk through while it's open. A FLIP-FLOP is a door that only opens for one split second, at the clock tick, then slams shut."</div>
+  </section>
+
+  <section class="chapter-section" id="practice-questions" data-nav="Practice questions">
+    <h2>Practice Questions</h2>
+    <ol>
+      <li>Why is S=R=1 considered a "forbidden" input for an SR latch?</li>
+      <li>Explain the difference between level-triggered and edge-triggered behavior in your own words.</li>
+      <li>Why do almost all real FPGA designs prefer flip-flops over plain latches?</li>
+      <li>Give one real-world example of a Finite State Machine, other than a traffic light.</li>
+    </ol>
+  </section>
+
+  <section class="chapter-section" id="interview-questions" data-nav="Interview questions">
+    <h2>Interview Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>What is the fundamental difference between combinational and sequential circuits?</summary><div class="answer">Combinational circuit outputs depend only on current inputs with no memory. Sequential circuit outputs depend on current inputs plus a remembered internal state, updated in step with a clock.</div></details></li>
+      <li><details class="qa"><summary>Why is the JK flip-flop considered an improvement over the SR flip-flop?</summary><div class="answer">It removes the forbidden input case — when J=K=1, instead of being invalid/undefined like SR's S=R=1, the JK flip-flop simply toggles its output, giving it a defined behavior for every input combination.</div></details></li>
+      <li><details class="qa"><summary>Why do FPGA designs favor synchronous design over asynchronous?</summary><div class="answer">Synchronous designs update all state elements together on a shared clock, making timing behavior predictable and analyzable with standard tools; asynchronous designs are far harder to verify and are prone to race conditions.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="viva-questions" data-nav="Viva questions">
+    <h2>Viva Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>How many NOR gates make up a basic SR latch?</summary><div class="answer">Two, cross-coupled so each gate's output feeds into the other gate's input.</div></details></li>
+      <li><details class="qa"><summary>What does a T flip-flop do when T=1 on every clock edge?</summary><div class="answer">It toggles — flips its output state — on every active clock edge, making it ideal for building counters.</div></details></li>
+      <li><details class="qa"><summary>Is a flip-flop level-triggered or edge-triggered?</summary><div class="answer">Edge-triggered — it only samples its input at the instant of a clock edge (commonly the rising edge).</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="assignments" data-nav="Assignments & answers">
+    <h2>Assignments</h2>
+    <p>1. Draw the cross-coupled NOR SR latch from memory and trace through all 4 input combinations by hand. 2. Draw a timing diagram comparing a D-latch and a D-flip-flop given the same D and CLK waveforms. 3. Sketch a simple 3-state FSM diagram (states + arrows + conditions) for a system of your choice (e.g., a vending machine, an elevator door).</p>
+    <details class="qa" style="margin-top:16px;">
+      <summary>Reveal Answers to Practice Questions</summary>
+      <div class="answer">
+        1) Because both cross-coupled NOR outputs are forced toward the same value, breaking the circuit's ability to hold two properly opposite (Q and Q') states — the result is undefined/unstable once both inputs return to 0 simultaneously.<br>
+        2) Level-triggered means the circuit stays "transparent," following its input for an entire duration the enable/clock is active; edge-triggered means it only reacts for a single instant at the clock transition.<br>
+        3) Flip-flops give one single, predictable update instant per clock cycle, which makes timing verification vastly simpler and avoids the unpredictable multiple-update behavior latches can cause inside a clocked system.<br>
+        4) Examples: a vending machine (Idle → Coin Inserted → Dispensing → Idle), an elevator door controller, a washing machine cycle controller.
+      </div>
+    </details>
+  </section>
+
+  <div class="footer-nav">
+    <a href="chapter-04.html"><span class="lbl">← BACK</span>Combinational Circuits</a>
+    <a href="chapter-06.html" class="next"><span class="lbl">NEXT</span>What is an FPGA? History & Applications</a>
+  </div>
+
+</article>
+</div>
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">↑</button>
+
+<script>window.CURRENT_CHAPTER_ID = "ch-05";</script>
+<script src="shared/nav.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => { const t = document.getElementById("reading-time"); const t2 = document.getElementById("reading-time-2"); if(t && t2){ const obs = new MutationObserver(()=>{ t2.textContent = t.textContent; }); obs.observe(t, {childList:true}); } });</script>
+</body>
+</html>
