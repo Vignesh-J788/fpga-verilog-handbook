@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 6 · What is an FPGA? History & Applications — FPGA & Verilog Handbook</title>
+<link rel="stylesheet" href="shared/styles.css">
+<style>
+  .blockbox{ fill:#141b26; stroke:#3b82f6; stroke-width:2; }
+  .blocklbl{ fill:#dbe6f0; font-family:ui-monospace,monospace; font-size:13px; }
+  .pinlbl{ fill:#93a4b8; font-family:ui-monospace,monospace; font-size:11.5px; }
+  .wire{ stroke:#93a4b8; stroke-width:2; fill:none; }
+  .timeline{ position:relative; margin:26px 0; padding-left:26px; border-left:2px solid var(--line); }
+  .tl-item{ position:relative; margin-bottom:26px; }
+  .tl-item::before{ content:""; position:absolute; left:-32px; top:4px; width:11px; height:11px; border-radius:50%; background:var(--sig-cyan); box-shadow:0 0 0 3px rgba(34,211,238,.2); }
+  .tl-year{ font-family:var(--font-mono); color:var(--sig-cyan); font-size:13px; font-weight:700; }
+  .app-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin:18px 0; }
+  .app-card{ background:var(--sheet-raised); border:1px solid var(--line); border-radius:10px; padding:16px 18px; }
+  .app-card h4{ margin:0 0 6px; font-size:14px; color:var(--ink); }
+  .app-card p{ margin:0; font-size:13px; color:var(--ink-dim); }
+</style>
+</head>
+<body>
+<div class="board-grid"></div>
+
+<div class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Open chapter menu"><span></span><span></span><span></span></button>
+  <div class="topbar-title"><b>Chapter 06</b> · What is an FPGA? History & Applications</div>
+  <div class="topbar-right"><span id="reading-time" class="dim" style="font-family:var(--font-mono);font-size:12px;"></span></div>
+</div>
+<div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="logo">◈ FPGA & VERILOG HANDBOOK</div>
+    <div class="tag">From absolute zero to a working FPGA board</div>
+  </div>
+  <div class="sidebar-search"><input type="text" id="sidebar-search-input" placeholder="Search chapters..."></div>
+  <div class="sidebar-group" id="sidebar-list"></div>
+</nav>
+
+<div class="page-wrap">
+<article class="sheet">
+
+  <div class="eyebrow">Part 2 · FPGA World — Chapter 06 (First chapter of Part 2)</div>
+  <h1 class="h-title">What Is an FPGA? History & Applications</h1>
+  <p class="h-sub">Everything in Part 1 — gates, Boolean algebra, adders, flip-flops — was building toward one destination: a chip you can reshape, entirely with software, into any digital circuit you can imagine. That chip is the FPGA. This chapter introduces what it is, where it came from, and why it matters.</p>
+  <div class="meta-row"><span>📖 Beginner Level</span><span>🕐 <span id="reading-time-2">—</span></span><span>🧩 7 sections</span></div>
+
+  <section class="chapter-section" id="what-is-fpga" data-nav="What is an FPGA?">
+    <h2>What Does "FPGA" Actually Mean?</h2>
+    <p>FPGA stands for <b>Field-Programmable Gate Array</b>. Let's break that phrase apart, word by word, because every single word is doing real work:</p>
+    <ul>
+      <li><b>Gate Array</b> — a chip that is, at its core, a huge array (grid) of the very logic gates you learned in Chapter 2: AND, OR, NOT, and everything built from them.</li>
+      <li><b>Programmable</b> — unlike a normal chip whose gates are permanently wired together at the factory, an FPGA's gates and the wiring between them can be <b>configured</b> — set up — after manufacturing, using a file you create on your computer.</li>
+      <li><b>Field</b> — "in the field" means outside the factory, out in the real world, wherever the chip actually ends up being used. So "field-programmable" means: reconfigurable by the end engineer, not just by the manufacturer.</li>
+    </ul>
+    <div class="analogy-box">
+      <div class="tag">Analogy · LEGO Bricks vs. a Finished Toy</div>
+      <p style="margin-bottom:0">A normal chip (like a calculator's processor) is like a toy that arrived from the factory already fully built and glued together — great at exactly one job, forever. An FPGA is like a giant bucket of LEGO bricks: nothing is glued down. You, the engineer, decide how the bricks connect, and you can take it all apart and rebuild it into something completely different tomorrow — a calculator today, a traffic light controller tomorrow, a tiny robot's brain the day after.</p>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="fpga-vs-asic" data-nav="FPGA vs fixed-function chips">
+    <h2>FPGA vs. a Fixed-Function Chip (ASIC)</h2>
+    <p>A chip designed to do exactly one job, forever, with its logic permanently baked in at the factory, is called an <b>ASIC</b> (Application-Specific Integrated Circuit). Your phone's main processor is an ASIC. So is the chip inside a calculator. Once manufactured, its internal wiring can never change.</p>
+    <table>
+      <thead><tr><th></th><th>ASIC</th><th>FPGA</th></tr></thead>
+      <tbody>
+        <tr><td>Can be reprogrammed after manufacturing?</td><td>No — permanent</td><td>Yes — reconfigurable, often instantly</td></tr>
+        <tr><td>Design/manufacturing cost</td><td>Extremely high (millions of dollars) for the first chip, then very cheap per unit</td><td>Chip itself costs more per unit, but zero manufacturing cost to "redesign"</td></tr>
+        <tr><td>Best for</td><td>Massive volume production of one fixed design (e.g., a phone chip made by the billions)</td><td>Prototyping, low/medium volume, designs that need updates, or designs needing custom hardware speed without a custom factory run</td></tr>
+        <tr><td>Speed once built</td><td>Usually faster and more power-efficient (everything is custom-optimized)</td><td>Slightly slower/more power-hungry than an equivalent ASIC, but still vastly faster than software running the same task</td></tr>
+      </tbody>
+    </table>
+    <p>A useful way to think about it: <b>FPGAs are frequently used to prototype and test a design before committing to the enormous cost of turning it into a final, mass-produced ASIC.</b> Many chips you use every day started life as an FPGA design during development.</p>
+  </section>
+
+  <section class="chapter-section" id="how-it-works-preview" data-nav="How an FPGA reconfigures itself (preview)">
+    <h2>A Sneak Peek: How Does "Reconfigurable" Actually Work?</h2>
+    <p>Inside an FPGA are thousands to millions of tiny configurable blocks (called <b>CLBs</b>, built from pieces called <b>LUTs</b> — Look-Up Tables) plus a dense mesh of programmable wiring between them. Loading a configuration file into the FPGA sets tiny internal memory switches that decide exactly which gates form and exactly how the wiring mesh connects them — effectively "drawing" your custom circuit into the chip's fabric, electrically. We'll open this up in full detail, with real diagrams, in the very next chapter.</p>
+  </section>
+
+  <section class="chapter-section" id="history" data-nav="History of the FPGA">
+    <h2>A Short History of the FPGA</h2>
+    <div class="timeline">
+      <div class="tl-item"><div class="tl-year">1984</div>Electrical engineer Ross Freeman, along with Bernard Vonderschmitt and James V. Barnett II, founded a company called Xilinx in San Jose, California, betting that shrinking transistor costs (thanks to Moore's Law) would soon make a fully reconfigurable chip commercially practical.</div>
+      <div class="tl-item"><div class="tl-year">1985</div>Xilinx released the <b>XC2064</b> — the world's first commercially available FPGA, containing 64 small configurable logic blocks arranged in an 8×8 grid. At the time, it was originally marketed as a "Logic Cell Array."</div>
+      <div class="tl-item"><div class="tl-year">1990s</div>Competing companies including Altera, Actel, and Lattice Semiconductor entered the market, pushing FPGA capacity from a few thousand gates toward hundreds of thousands, and establishing FPGAs as a mainstream tool for glue logic and embedded systems.</div>
+      <div class="tl-item"><div class="tl-year">2000s–2010s</div>FPGA capacity grew into the millions of logic cells, with dedicated hard blocks added for math (DSP slices), memory, and even embedded processor cores, making FPGAs viable for high-performance signal processing, networking, and early machine-learning acceleration.</div>
+      <div class="tl-item"><div class="tl-year">2022</div>AMD completed its acquisition of Xilinx, folding the pioneering FPGA company into one of the world's largest chipmakers — a sign of how central reconfigurable hardware has become to modern computing, especially for AI acceleration and data centers.</div>
+    </div>
+    <div class="callout">
+      <div class="callout-title">Why this history matters to you</div>
+      Every tool you'll use later in this handbook — Vivado (Chapter 24) — is the direct descendant of the software Xilinx built to support that very first XC2064 back in 1985. You are learning a design flow with 40 years of refinement behind it.
+    </div>
+  </section>
+
+  <section class="chapter-section" id="why-fpga-parallelism" data-nav="Why FPGAs are genuinely fast">
+    <h2>Why FPGAs Are Genuinely, Fundamentally Fast</h2>
+    <p>A normal processor (CPU) executes instructions <b>one after another</b>, extremely quickly, but still one at a time (or a handful at a time, with tricks). An FPGA doesn't execute "instructions" at all — it <i>becomes</i> the circuit you designed, with real physical wires and gates doing the actual work, all at once, simultaneously.</p>
+    <div class="analogy-box">
+      <div class="tag">Analogy · One Chef vs. a Hundred Chefs</div>
+      <p style="margin-bottom:0">A CPU is like one incredibly fast chef, cooking one dish, then the next, then the next — however fast they chop, they're still doing one task at a time. An FPGA is like a hundred separate chefs, each permanently assigned one specific tiny task, all working <b>at the exact same instant</b>, because you literally built a hundred independent little stations out of real hardware. For tasks that can be split into many independent pieces — image processing, filtering audio, running many sensors simultaneously — this parallelism gives FPGAs a massive, genuine speed advantage.</p>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="applications" data-nav="Real-world applications">
+    <h2>Where FPGAs Are Actually Used Today</h2>
+    <div class="app-grid">
+      <div class="app-card"><h4>📡 Telecommunications</h4><p>5G base stations and networking equipment use FPGAs to process massive data streams in real time, and to adapt quickly as communication standards evolve.</p></div>
+      <div class="app-card"><h4>🛰️ Aerospace & Defense</h4><p>Radar, satellite, and avionics systems favor FPGAs for their reliability, reconfigurability in the field, and ability to be updated without swapping physical hardware.</p></div>
+      <div class="app-card"><h4>🎥 Video & Image Processing</h4><p>Real-time video encoding, camera pipelines, and computer vision systems exploit FPGA parallelism to process every pixel simultaneously.</p></div>
+      <div class="app-card"><h4>🚗 Automotive (ADAS)</h4><p>Advanced driver-assistance systems use FPGAs to fuse data from multiple sensors (cameras, radar, lidar) with very low, predictable latency.</p></div>
+      <div class="app-card"><h4>🤖 AI / Machine Learning</h4><p>Data centers increasingly use FPGAs to accelerate neural network inference, offering a flexible middle ground between general CPUs and fixed AI chips.</p></div>
+      <div class="app-card"><h4>💰 High-Frequency Trading</h4><p>Financial firms use FPGAs to shave microseconds off trade execution, since FPGA logic responds far faster and more predictably than software.</p></div>
+      <div class="app-card"><h4>🏥 Medical Devices</h4><p>Medical imaging equipment (ultrasound, MRI signal processing) relies on FPGAs for real-time signal processing with certifiable, predictable behavior.</p></div>
+      <div class="app-card"><h4>🧪 ASIC Prototyping</h4><p>Chip companies build and test a design on FPGAs first — far cheaper than fabricating physical test chips — before committing to a final ASIC.</p></div>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="summary" data-nav="Summary & key points">
+    <h2>Summary</h2>
+    <p>An FPGA (Field-Programmable Gate Array) is a chip made of a huge grid of reconfigurable logic blocks and programmable wiring, letting engineers "rebuild" its internal circuit as many times as they like, entirely through software — unlike an ASIC, whose circuit is permanently fixed at the factory. Invented by Ross Freeman and commercialized by Xilinx starting with the 1985 XC2064, FPGAs have grown from a 64-block novelty into a foundational technology across telecom, aerospace, automotive, AI, and finance. Their core advantage over a CPU is genuine hardware parallelism — many operations really do happen at the exact same instant, because you're not running instructions, you're building physical circuitry.</p>
+    <h3>Key Points</h3>
+    <ul>
+      <li>FPGA = reconfigurable gate array; ASIC = permanently fixed-function chip.</li>
+      <li>First commercial FPGA: Xilinx XC2064, 1985, invented by Ross Freeman.</li>
+      <li>FPGAs are often used to prototype designs before an expensive final ASIC run.</li>
+      <li>FPGA speed advantage comes from true parallelism — hardware, not instructions.</li>
+      <li>Used across telecom, aerospace, automotive, AI acceleration, finance, and medical devices.</li>
+    </ul>
+    <div class="mem-trick"><b>Memory Trick:</b> "FPGA = Field = reprogram it anywhere, Programmable = configure it yourself, Gate Array = it's really just a giant grid of gates."</div>
+  </section>
+
+  <section class="chapter-section" id="practice-questions" data-nav="Practice questions">
+    <h2>Practice Questions</h2>
+    <ol>
+      <li>What do each of the three words in "Field-Programmable Gate Array" mean?</li>
+      <li>Name two advantages an ASIC has over an FPGA, and two advantages an FPGA has over an ASIC.</li>
+      <li>Why is FPGA parallelism fundamentally different from a CPU running "many tasks quickly"?</li>
+      <li>Name one industry that relies on FPGAs, and explain briefly why an FPGA suits that use case better than plain software.</li>
+    </ol>
+  </section>
+
+  <section class="chapter-section" id="interview-questions" data-nav="Interview questions">
+    <h2>Interview Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>What is the fundamental difference between an FPGA and an ASIC?</summary><div class="answer">An ASIC's internal circuit is permanently fixed at manufacturing time and can never change. An FPGA's internal logic and wiring are reconfigurable after manufacturing, using a configuration file, allowing the same physical chip to become many different circuits over its lifetime.</div></details></li>
+      <li><details class="qa"><summary>Why might a company prototype a design on an FPGA before building an ASIC?</summary><div class="answer">ASIC manufacturing (a "fab run") costs millions of dollars and can't be undone if there's a design flaw. Testing the same logic on an FPGA first is dramatically cheaper and lets engineers catch and fix bugs before committing to expensive, permanent silicon.</div></details></li>
+      <li><details class="qa"><summary>Why do FPGAs offer a genuine parallelism advantage over CPUs for certain tasks?</summary><div class="answer">A CPU executes instructions sequentially (even if very fast), while an FPGA's configured circuit performs many independent operations simultaneously in real hardware, since each operation has its own dedicated physical logic rather than sharing one execution pipeline.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="viva-questions" data-nav="Viva questions">
+    <h2>Viva Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>Who is credited as the inventor of the FPGA, and which company commercialized it?</summary><div class="answer">Ross Freeman is credited as the inventor; Xilinx, which he co-founded, commercialized it with the XC2064 in 1985.</div></details></li>
+      <li><details class="qa"><summary>What does "field-programmable" mean?</summary><div class="answer">It means the chip can be configured/reconfigured by the end user out in the real world ("in the field"), rather than only at the factory during manufacturing.</div></details></li>
+      <li><details class="qa"><summary>Give one real-world domain where FPGAs are used.</summary><div class="answer">Any of: telecommunications (5G), aerospace/defense, automotive ADAS, AI acceleration, high-frequency trading, medical imaging, or ASIC prototyping.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="assignments" data-nav="Assignments & answers">
+    <h2>Assignments</h2>
+    <p>1. Write a one-paragraph explanation of FPGAs suitable for a non-technical friend, using an analogy of your own choosing. 2. Research one modern FPGA product (from AMD/Xilinx, Intel/Altera, or Lattice) and note its logic cell count and one advertised application. 3. List three tasks you think would run well on an FPGA and three you think would run better on a normal CPU, and justify each choice using the parallelism idea from this chapter.</p>
+    <details class="qa" style="margin-top:16px;">
+      <summary>Reveal Answers to Practice Questions</summary>
+      <div class="answer">
+        1) Field = reconfigurable outside the factory; Programmable = configured by the engineer via software; Gate Array = a grid of logic gates.<br>
+        2) ASIC advantages: faster and more power-efficient at scale, cheaper per unit in mass production. FPGA advantages: reconfigurable after manufacturing, far cheaper for prototyping/low-volume designs.<br>
+        3) A CPU still processes one instruction at a time per core (even if extremely fast); an FPGA's logic exists as separate, simultaneous physical circuits with no shared instruction pipeline at all.<br>
+        4) Example: 5G telecom equipment — FPGAs handle the extremely high, real-time data throughput requirements and can be updated as networking standards evolve, without replacing hardware.
+      </div>
+    </details>
+  </section>
+
+  <div class="footer-nav">
+    <a href="chapter-05.html"><span class="lbl">← BACK</span>Sequential Circuits</a>
+    <a href="chapter-07.html" class="next"><span class="lbl">NEXT</span>FPGA Internal Architecture (LUT, CLB, Routing)</a>
+  </div>
+
+</article>
+</div>
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">↑</button>
+
+<script>window.CURRENT_CHAPTER_ID = "ch-06";</script>
+<script src="shared/nav.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => { const t = document.getElementById("reading-time"); const t2 = document.getElementById("reading-time-2"); if(t && t2){ const obs = new MutationObserver(()=>{ t2.textContent = t.textContent; }); obs.observe(t, {childList:true}); } });</script>
+</body>
+</html>
