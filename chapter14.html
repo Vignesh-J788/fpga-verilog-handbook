@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 14 · Gate-Level vs Dataflow vs Behavioral Modeling — FPGA & Verilog Handbook</title>
+<link rel="stylesheet" href="shared/styles.css">
+</head>
+<body>
+<div class="board-grid"></div>
+
+<div class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Open chapter menu"><span></span><span></span><span></span></button>
+  <div class="topbar-title"><b>Chapter 14</b> · Gate-Level vs Dataflow vs Behavioral Modeling</div>
+  <div class="topbar-right"><span id="reading-time" class="dim" style="font-family:var(--font-mono);font-size:12px;"></span></div>
+</div>
+<div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="logo">◈ FPGA & VERILOG HANDBOOK</div>
+    <div class="tag">From absolute zero to a working FPGA board</div>
+  </div>
+  <div class="sidebar-search"><input type="text" id="sidebar-search-input" placeholder="Search chapters..."></div>
+  <div class="sidebar-group" id="sidebar-list"></div>
+</nav>
+
+<div class="page-wrap">
+<article class="sheet">
+
+  <div class="eyebrow">Part 4 · Modeling Styles — Chapter 14 (Only chapter in Part 4)</div>
+  <h1 class="h-title">Gate-Level vs Dataflow vs Behavioral Modeling</h1>
+  <p class="h-sub">You've already used dataflow (Chapter 9) and behavioral (Chapter 10) styles without naming them. This chapter names all four modeling styles properly, and — most usefully — builds the exact same circuit four different ways so you can compare them side by side.</p>
+  <div class="meta-row"><span>📖 Beginner Level</span><span>🕐 <span id="reading-time-2">—</span></span><span>🧩 6 sections</span></div>
+
+  <section class="chapter-section" id="four-styles" data-nav="The four modeling styles">
+    <h2>The Four Ways to Describe the Same Hardware</h2>
+    <p>Verilog gives you four different "levels" at which to describe identical hardware behavior. None is more "correct" than another — they're different tools for different situations, and real designs mix all four freely.</p>
+    <table>
+      <thead><tr><th>Style</th><th>Describes hardware as...</th><th>Key constructs</th></tr></thead>
+      <tbody>
+        <tr><td><b>Gate-level</b></td><td>An explicit netlist of primitive logic gates</td><td><code>and</code>, <code>or</code>, <code>not</code>, <code>xor</code>, <code>nand</code>, <code>nor</code> (built-in primitives)</td></tr>
+        <tr><td><b>Dataflow</b></td><td>Continuous equations relating signals</td><td><code>assign</code></td></tr>
+        <tr><td><b>Behavioral</b></td><td>What the circuit does, algorithmically</td><td><code>always</code>, <code>if</code>, <code>case</code> (Chapters 10–11)</td></tr>
+        <tr><td><b>Structural</b></td><td>A hierarchy of smaller modules wired together</td><td>module instantiation (Chapter 11)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="chapter-section" id="gate-level" data-nav="Gate-Level Modeling">
+    <h2>Gate-Level Modeling — Explicit Primitive Gates</h2>
+    <p>Verilog provides a small set of built-in gate primitives you can instantiate directly, with no need to define them yourself — this is the style closest to literally drawing a schematic in text form.</p>
+    <div class="codeblock">
+      <div class="code-head"><span>half_adder_gate.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">half_adder_gate</span> (
+    <span class="kw">input</span>  <span class="id">a</span>, <span class="id">b</span>,
+    <span class="kw">output</span> <span class="id">sum</span>, <span class="id">carry</span>
+);
+
+    <span class="id">xor</span> (<span class="id">sum</span>,   <span class="id">a</span>, <span class="id">b</span>);   <span class="cmt">// built-in XOR primitive: (output, input1, input2)</span>
+    <span class="id">and</span> (<span class="id">carry</span>, <span class="id">a</span>, <span class="id">b</span>);   <span class="cmt">// built-in AND primitive</span>
+
+<span class="kw">endmodule</span></pre>
+    </div>
+    <p class="dim">Notice built-in primitives list their <b>output first</b>, then inputs — the opposite order from named port connections. This style is mostly used for teaching and very small circuits; real designs rarely instantiate primitives by hand at scale.</p>
+  </section>
+
+  <section class="chapter-section" id="dataflow" data-nav="Dataflow Modeling">
+    <h2>Dataflow Modeling — Continuous Equations</h2>
+    <p>This is the style you first learned in Chapter 9: describing signals as continuous equations of other signals, using <code>assign</code>.</p>
+    <div class="codeblock">
+      <div class="code-head"><span>half_adder_dataflow.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">half_adder_dataflow</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">a</span>, <span class="id">b</span>,
+    <span class="kw">output</span> <span class="typ">wire</span> <span class="id">sum</span>, <span class="id">carry</span>
+);
+
+    <span class="kw">assign</span> <span class="id">sum</span>   = <span class="id">a</span> ^ <span class="id">b</span>;
+    <span class="kw">assign</span> <span class="id">carry</span> = <span class="id">a</span> & <span class="id">b</span>;
+
+<span class="kw">endmodule</span></pre>
+    </div>
+    <p>This is the most common style for straightforward combinational logic — clean, direct, and closely mirroring the Boolean equations from Chapter 4.</p>
+  </section>
+
+  <section class="chapter-section" id="behavioral" data-nav="Behavioral Modeling">
+    <h2>Behavioral Modeling — Describing What, Not How</h2>
+    <p>Behavioral modeling, introduced in Chapters 10–11, describes a circuit's <i>behavior</i> algorithmically, using <code>always</code> blocks with <code>if</code>/<code>case</code> — letting you express complex decision logic that would be awkward to write as one giant <code>assign</code> equation.</p>
+    <div class="codeblock">
+      <div class="code-head"><span>half_adder_behavioral.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">half_adder_behavioral</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">a</span>, <span class="id">b</span>,
+    <span class="kw">output</span> <span class="typ">reg</span>  <span class="id">sum</span>, <span class="id">carry</span>
+);
+
+    <span class="kw">always</span> @(*) <span class="kw">begin</span>
+        <span class="id">sum</span>   = <span class="id">a</span> ^ <span class="id">b</span>;
+        <span class="id">carry</span> = <span class="id">a</span> & <span class="id">b</span>;
+    <span class="kw">end</span>
+
+<span class="kw">endmodule</span></pre>
+    </div>
+    <p>For this particular simple circuit, dataflow and behavioral produce identical hardware — but behavioral modeling is essential once you need <code>if</code>/<code>case</code> decision logic or clocked memory (Chapter 10's flip-flops), which <code>assign</code> alone cannot express.</p>
+  </section>
+
+  <section class="chapter-section" id="structural" data-nav="Structural Modeling">
+    <h2>Structural Modeling — Building From Smaller Pieces</h2>
+    <p>Structural modeling builds a circuit by wiring together instances of <i>other</i> modules, exactly as you did with the <code>generate</code>-based ripple adder in Chapter 11. Assuming you've already built separate <code>xor_gate</code> and <code>and_gate</code> modules (Chapter 9's exercises), here's the half adder built purely structurally:</p>
+    <div class="codeblock">
+      <div class="code-head"><span>half_adder_structural.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">half_adder_structural</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">a</span>, <span class="id">b</span>,
+    <span class="kw">output</span> <span class="typ">wire</span> <span class="id">sum</span>, <span class="id">carry</span>
+);
+
+    <span class="id">xor_gate</span> <span class="id">x1</span> ( .<span class="id">a</span>(<span class="id">a</span>), .<span class="id">b</span>(<span class="id">b</span>), .<span class="id">y</span>(<span class="id">sum</span>)   );
+    <span class="id">and_gate</span> <span class="id">a1</span> ( .<span class="id">a</span>(<span class="id">a</span>), .<span class="id">b</span>(<span class="id">b</span>), .<span class="id">y</span>(<span class="id">carry</span>) );
+
+<span class="kw">endmodule</span></pre>
+    </div>
+    <p>This is the style behind essentially every large, real design: a top-level module that's mostly just wiring, instantiating dozens or hundreds of smaller, independently-verified sub-modules — exactly how the full-adder-into-ripple-adder hierarchy worked in Chapter 11.</p>
+  </section>
+
+  <section class="chapter-section" id="which-to-use" data-nav="Which style should you actually use?">
+    <h2>Which Style Should You Actually Use?</h2>
+    <div class="analogy-box">
+      <div class="tag">Analogy · Writing a Recipe at Different Levels of Detail</div>
+      <p style="margin-bottom:0">Gate-level is like listing every individual knife-cut and stir, one by one — extremely precise, but painfully slow to write for a big meal. Dataflow is like writing "mix flour, egg, and sugar together" — a clean formula. Behavioral is like writing "if the batter looks too dry, add a little milk" — describing a decision, not a fixed formula. Structural is like a menu that just says "serve the soup, then the main course, then dessert" — assembling separately-prepared components rather than describing any single dish's own steps.</p>
+    </div>
+    <ul>
+      <li><b>Gate-level:</b> mostly for learning/teaching, or extremely small, timing-critical hand-optimized cells. Rare in day-to-day design.</li>
+      <li><b>Dataflow:</b> ideal for straightforward combinational equations with no complex branching.</li>
+      <li><b>Behavioral:</b> essential for anything with decisions (<code>if</code>/<code>case</code>) or clocked memory (flip-flops, counters, FSMs) — most of Part 5 will use this style.</li>
+      <li><b>Structural:</b> essential once a design grows large enough to need hierarchy, reuse, and independently-testable building blocks.</li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="summary" data-nav="Summary & key points">
+    <h2>Summary</h2>
+    <p>The same hardware behavior can be described at four levels: gate-level (explicit primitive gates), dataflow (continuous <code>assign</code> equations), behavioral (algorithmic <code>always</code> blocks with decisions), and structural (wiring together instances of other modules). None is objectively "better" — real, professional designs freely mix all four, typically using structural modeling at the top level to assemble behavioral and dataflow sub-modules underneath.</p>
+    <h3>Key Points</h3>
+    <ul>
+      <li>Gate-level = explicit primitive gate instances (and, or, xor...).</li>
+      <li>Dataflow = continuous assign equations.</li>
+      <li>Behavioral = always blocks with if/case, describing decisions/algorithms.</li>
+      <li>Structural = instantiating other modules to build hierarchy.</li>
+      <li>Real designs mix all four freely — structural at the top, behavioral/dataflow underneath.</li>
+    </ul>
+    <div class="mem-trick"><b>Memory Trick:</b> "Gate = draw every gate. Dataflow = write the formula. Behavioral = describe the decision. Structural = assemble the pieces."</div>
+  </section>
+
+  <section class="chapter-section" id="practice-questions" data-nav="Practice questions">
+    <h2>Practice Questions</h2>
+    <ol>
+      <li>Write the AND gate from Chapter 9 in all four modeling styles.</li>
+      <li>Why is gate-level modeling rarely used for large, real-world designs?</li>
+      <li>Why can't a D flip-flop (Chapter 10) be described using pure dataflow modeling?</li>
+      <li>Give one reason structural modeling becomes essential as a design grows larger.</li>
+    </ol>
+  </section>
+
+  <section class="chapter-section" id="interview-questions" data-nav="Interview questions">
+    <h2>Interview Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>What is the difference between dataflow and behavioral modeling?</summary><div class="answer">Dataflow uses continuous assign statements to describe signals as ongoing equations of other signals. Behavioral modeling uses procedural always blocks with constructs like if/case to describe decision-based or clocked behavior that a single continuous equation cannot easily express.</div></details></li>
+      <li><details class="qa"><summary>Why do real, large designs favor structural modeling at the top level?</summary><div class="answer">It allows a design to be broken into smaller, independently verifiable and reusable modules, wired together hierarchically, which is far more manageable and testable than one enormous flat description.</div></details></li>
+      <li><details class="qa"><summary>Is one modeling style considered strictly "better" than the others?</summary><div class="answer">No — each style suits different situations, and professional designs typically combine all four: structural for hierarchy, behavioral for decisions/memory, dataflow for straightforward combinational equations, and gate-level occasionally for precise, small-scale control.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="viva-questions" data-nav="Viva questions">
+    <h2>Viva Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>Name the four Verilog modeling styles.</summary><div class="answer">Gate-level, dataflow, behavioral, and structural.</div></details></li>
+      <li><details class="qa"><summary>Which keyword is central to dataflow modeling?</summary><div class="answer">assign</div></details></li>
+      <li><details class="qa"><summary>In a built-in gate primitive like `and(y, a, b)`, which argument is the output?</summary><div class="answer">The first argument, y — output comes first, then the inputs.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="assignments" data-nav="Assignments & answers">
+    <h2>Assignments</h2>
+    <p>1. Build a full adder (Chapter 4) in all four modeling styles and confirm (by tracing through, or writing a testbench from Chapter 12) that all four produce identical truth tables. 2. Explain, in 100+ words, why a top-level FPGA design almost always ends up structural, even if every individual sub-module inside it is behavioral or dataflow. 3. Pick any project idea and sketch which modules you'd write behaviorally vs structurally, and justify your choices.</p>
+    <details class="qa" style="margin-top:16px;">
+      <summary>Reveal Answers to Practice Questions</summary>
+      <div class="answer">
+        1) Gate-level: <code>and(y,a,b);</code> Dataflow: <code>assign y = a & b;</code> Behavioral: <code>always @(*) y = a & b;</code> (y as reg). Structural: instantiate a lower-level and_gate module inside a wrapper (trivial here, but the pattern holds).<br>
+        2) Because manually wiring every individual gate for a large design is impractical and error-prone; higher-level constructs like assign and if/case scale far better for expressing large amounts of logic concisely and correctly.<br>
+        3) It has no combinational equivalent — its output depends on a clock edge and its own previous state, which requires the procedural, edge-sensitive behavior only always @(posedge clk) can express.<br>
+        4) As a design grows, breaking it into independently-designed, independently-tested modules (each possibly using a different internal modeling style) and wiring them together becomes essential for managing complexity, reuse, and verification.
+      </div>
+    </details>
+  </section>
+
+  <div class="footer-nav">
+    <a href="chapter-13.html"><span class="lbl">← BACK</span>Blocking vs Non-blocking, Synthesis vs RTL vs Timing</a>
+    <a href="chapter-15.html" class="next"><span class="lbl">NEXT</span>Basic Gates: AND/OR/NOT/NAND/NOR/XOR/XNOR</a>
+  </div>
+
+</article>
+</div>
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">↑</button>
+
+<script>window.CURRENT_CHAPTER_ID = "ch-14";</script>
+<script src="shared/nav.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => { const t = document.getElementById("reading-time"); const t2 = document.getElementById("reading-time-2"); if(t && t2){ const obs = new MutationObserver(()=>{ t2.textContent = t.textContent; }); obs.observe(t, {childList:true}); } });</script>
+</body>
+</html>
