@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 2 · Logic Gates & Boolean Algebra — FPGA & Verilog Handbook</title>
+<link rel="stylesheet" href="shared/styles.css">
+<style>
+  .gate-card{ background:var(--sheet-raised); border:1px solid var(--line); border-radius:12px; padding:20px; margin:22px 0; }
+  .gate-card .gate-top{ display:flex; gap:22px; flex-wrap:wrap; align-items:flex-start; }
+  .gate-card svg{ flex-shrink:0; }
+  .gate-card .gate-info{ flex:1; min-width:220px; }
+  .gate-card h3{ margin-top:0 !important; }
+  .expr{ font-family:var(--font-mono); background:#0b1119; border:1px solid var(--line); padding:8px 12px; border-radius:6px; display:inline-block; color:var(--sig-cyan); margin:6px 0; }
+</style>
+</head>
+<body>
+<div class="board-grid"></div>
+
+<div class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Open chapter menu"><span></span><span></span><span></span></button>
+  <div class="topbar-title"><b>Chapter 02</b> · Logic Gates & Boolean Algebra</div>
+  <div class="topbar-right"><span id="reading-time" class="dim" style="font-family:var(--font-mono);font-size:12px;"></span></div>
+</div>
+<div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="logo">◈ FPGA & VERILOG HANDBOOK</div>
+    <div class="tag">From absolute zero to a working FPGA board</div>
+  </div>
+  <div class="sidebar-search"><input type="text" id="sidebar-search-input" placeholder="Search chapters..."></div>
+  <div class="sidebar-group" id="sidebar-list"></div>
+</nav>
+
+<div class="page-wrap">
+<article class="sheet">
+
+  <div class="eyebrow">Part 1 · Digital Electronics Foundations — Chapter 02</div>
+  <h1 class="h-title">Logic Gates & Boolean Algebra</h1>
+  <p class="h-sub">Chapter 1 gave you 1s and 0s. This chapter gives you the tiny decision-making machines — gates — that combine those 1s and 0s into logic, and the algebra that lets you predict and simplify their behavior on paper before you ever touch hardware.</p>
+  <div class="meta-row">
+    <span>📖 Beginner Level</span><span>🕐 <span id="reading-time-2">—</span></span><span>🧩 11 sections</span>
+  </div>
+
+  <section class="chapter-section" id="intro" data-nav="What is a gate?">
+    <h2>What Exactly Is a "Logic Gate"?</h2>
+    <p>A logic gate is the tiniest possible decision-maker in electronics. It looks at one or more inputs — each either HIGH (1) or LOW (0) — and instantly produces one output, also either 1 or 0, based on a fixed rule. That's the entire idea. Every calculator, every processor, every FPGA you will ever program is, underneath everything, just millions of these tiny decision-makers wired together.</p>
+    <div class="analogy-box">
+      <div class="tag">Analogy · Two Friends and a Bulb</div>
+      <p style="margin-bottom:0">Imagine two friends, A and B, each holding a switch that's wired to one shared light bulb. Depending on <i>how</i> the switches are wired to the bulb, you get a different rule for when the bulb glows. If the bulb only glows when <b>both</b> friends press their switch — that's an <b>AND</b> gate. If it glows when <b>either one (or both)</b> presses — that's an <b>OR</b> gate. The wiring pattern <i>is</i> the logic. We're about to go through every common wiring pattern, one at a time.</p>
+    </div>
+    <p>For every gate below, we'll show: the real-life analogy, the standard symbol used on schematics worldwide, the truth table (every possible input combination and its result), and the Boolean expression (the algebra shorthand for the rule).</p>
+  </section>
+
+  <section class="chapter-section" id="and-gate" data-nav="AND gate">
+    <h2>The AND Gate</h2>
+    <div class="gate-card">
+      <div class="gate-top">
+        <svg viewBox="0 0 160 110" width="180" height="120" xmlns="http://www.w3.org/2000/svg">
+          <line x1="10" y1="35" x2="45" y2="35" stroke="#93a4b8" stroke-width="2"/>
+          <line x1="10" y1="75" x2="45" y2="75" stroke="#93a4b8" stroke-width="2"/>
+          <path d="M45,20 L85,20 A35,35 0 0 1 85,90 L45,90 Z" fill="#141b26" stroke="#3b82f6" stroke-width="2.5"/>
+          <line x1="120" y1="55" x2="150" y2="55" stroke="#93a4b8" stroke-width="2"/>
+          <text x="4" y="30" fill="#93a4b8" font-size="12" font-family="ui-monospace,monospace">A</text>
+          <text x="4" y="70" fill="#93a4b8" font-size="12" font-family="ui-monospace,monospace">B</text>
+          <text x="132" y="50" fill="#93a4b8" font-size="12" font-family="ui-monospace,monospace">Y</text>
+        </svg>
+        <div class="gate-info">
+          <h3>Both switches must be pressed</h3>
+          <p>The bulb glows <b>only if A AND B</b> are both pressed. Miss even one, and the bulb stays dark. This is the strictest gate — everything has to agree.</p>
+          <span class="expr">Y = A · B &nbsp;(also written A AND B, or AB)</span>
+        </div>
+      </div>
+      <table><thead><tr><th>A</th><th>B</th><th>Y</th></tr></thead>
+        <tbody><tr><td>0</td><td>0</td><td>0</td></tr><tr><td>0</td><td>1</td><td>0</td></tr><tr><td>1</td><td>0</td><td>0</td></tr><tr><td>1</td><td>1</td><td>1</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="or-gate" data-nav="OR gate">
+    <h2>The OR Gate</h2>
+    <div class="gate-card">
+      <div class="gate-top">
+        <svg viewBox="0 0 160 110" width="180" height="120" xmlns="http://www.w3.org/2000/svg">
+          <line x1="8" y1="35" x2="40" y2="35" stroke="#93a4b8" stroke-width="2"/>
+          <line x1="8" y1="75" x2="40" y2="75" stroke="#93a4b8" stroke-width="2"/>
+          <path d="M35,20 C60,20 85,35 105,55 C85,75 60,90 35,90 C50,72 50,38 35,20 Z" fill="#141b26" stroke="#3b82f6" stroke-width="2.5"/>
+          <line x1="120" y1="55" x2="150" y2="55" stroke="#93a4b8" stroke-width="2"/>
+          <text x="2" y="30" fill="#93a4b8" font-size="12" font-family="ui-monospace,monospace">A</text>
+          <text x="2" y="70" fill="#93a4b8" font-size="12" font-family="ui-monospace,monospace">B</text>
+          <text x="132" y="50" fill="#93a4b8" font-size="12" font-family="ui-monospace,monospace">Y</text>
+        </svg>
+        <div class="gate-info">
+          <h3>At least one switch is enough</h3>
+          <p>The bulb glows if <b>A OR B</b> (or both) is pressed. Only stays dark if both are left alone. This is the most "generous" of the basic gates.</p>
+          <span class="expr">Y = A + B &nbsp;(also written A OR B)</span>
+        </div>
+      </div>
+      <table><thead><tr><th>A</th><th>B</th><th>Y</th></tr></thead>
+        <tbody><tr><td>0</td><td>0</td><td>0</td></tr><tr><td>0</td><td>1</td><td>1</td></tr><tr><td>1</td><td>0</td><td>1</td></tr><tr><td>1</td><td>1</td><td>1</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="not-gate" data-nav="NOT gate">
+    <h2>The NOT Gate (Inverter)</h2>
+    <div class="gate-card">
+      <div class="gate-top">
+        <svg viewBox="0 0 160 110" width="180" height="120" xmlns="http://www.w3.org/2000/svg">
+          <line x1="8" y1="55" x2="40" y2="55" stroke="#93a4b8" stroke-width="2"/>
+          <path d="M40,20 L40,90 L100,55 Z" fill="#141b26" stroke="#f5a524" stroke-width="2.5"/>
+          <circle cx="108" cy="55" r="7" fill="#141b26" stroke="#f5a524" stroke-width="2.5"/>
+          <line x1="115" y1="55" x2="150" y2="55" stroke="#93a4b8" stroke-width="2"/>
+          <text x="2" y="50" fill="#93a4b8" font-size="12" font-family="ui-monospace,monospace">A</text>
+          <text x="130" y="50" fill="#93a4b8" font-size="12" font-family="ui-monospace,monospace">Y</text>
+        </svg>
+        <div class="gate-info">
+          <h3>Whatever you give it, it flips it</h3>
+          <p>Only one input. If A is pressed (1), the bulb turns OFF. If A is left alone (0), the bulb turns ON. It always does the <b>opposite</b> of its input — like a grumpy mirror.</p>
+          <span class="expr">Y = A' &nbsp;(also written Ā, or NOT A)</span>
+        </div>
+      </div>
+      <table><thead><tr><th>A</th><th>Y</th></tr></thead>
+        <tbody><tr><td>0</td><td>1</td></tr><tr><td>1</td><td>0</td></tr></tbody>
+      </table>
+      <p class="dim" style="margin-bottom:0;">Notice the small circle (called a <b>bubble</b>) at the tip of the triangle — in schematics, a bubble anywhere always means "invert this signal." You'll see this same bubble reused on the next two gates.</p>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="nand-nor-gates" data-nav="NAND & NOR gates">
+    <h2>NAND and NOR — The "Universal" Gates</h2>
+    <p>NAND is simply "<b>N</b>ot-<b>AND</b>" — an AND gate with a bubble on the output. NOR is "<b>N</b>ot-<b>OR</b>" — an OR gate with a bubble on the output. They just flip the final answer of their sibling gate.</p>
+    <div class="grid-2">
+      <div class="gate-card" style="margin:0;">
+        <svg viewBox="0 0 160 110" width="100%" height="120" xmlns="http://www.w3.org/2000/svg">
+          <line x1="6" y1="35" x2="40" y2="35" stroke="#93a4b8" stroke-width="2"/>
+          <line x1="6" y1="75" x2="40" y2="75" stroke="#93a4b8" stroke-width="2"/>
+          <path d="M40,20 L75,20 A35,35 0 0 1 75,90 L40,90 Z" fill="#141b26" stroke="#34d399" stroke-width="2.5"/>
+          <circle cx="118" cy="55" r="7" fill="#141b26" stroke="#34d399" stroke-width="2.5"/>
+          <line x1="125" y1="55" x2="150" y2="55" stroke="#93a4b8" stroke-width="2"/>
+          <text x="0" y="30" fill="#93a4b8" font-size="12" font-family="ui-monospace,monospace">A</text>
+          <text x="0" y="70" fill="#93a4b8" font-size="12" font-family="ui-monospace,monospace">B</text>
+        </svg>
+        <h3 style="margin-top:6px;">NAND</h3>
+        <span class="expr">Y = (A · B)'</span>
+        <table><thead><tr><th>A</th><th>B</th><th>Y</th></tr></thead>
+          <tbody><tr><td>0</td><td>0</td><td>1</td></tr><tr><td>0</td><td>1</td><td>1</td></tr><tr><td>1</td><td>0</td><td>1</td></tr><tr><td>1</td><td>1</td><td>0</td></tr></tbody>
+        </table>
+        <p class="dim" style="margin-bottom:0;">Only false when <i>both</i> inputs are true — the exact opposite of AND.</p>
+      </div>
+      <div class="gate-card" style="margin:0;">
+        <svg viewBox="0 0 160 110" width="100%" height="120" xmlns="http://www.w3.org/2000/svg">
+          <line x1="4" y1="35" x2="36" y2="35" stroke="#93a4b8" stroke-width="2"/>
+          <line x1="4" y1="75" x2="36" y2="75" stroke="#93a4b8" stroke-width="2"/>
+          <path d="M31,20 C56,20 81,35 101,55 C81,75 56,90 31,90 C46,72 46,38 31,20 Z" fill="#141b26" stroke="#34d399" stroke-width="2.5"/>
+          <circle cx="110" cy="55" r="7" fill="#141b26" stroke="#34d399" stroke-width="2.5"/>
+          <line x1="117" y1="55" x2="150" y2="55" stroke="#93a4b8" stroke-width="2"/>
+          <text x="0" y="30" fill="#93a4b8" font-size="12" font-family="ui-monospace,monospace">A</text>
+          <text x="0" y="70" fill="#93a4b8" font-size="12" font-family="ui-monospace,monospace">B</text>
+        </svg>
+        <h3 style="margin-top:6px;">NOR</h3>
+        <span class="expr">Y = (A + B)'</span>
+        <table><thead><tr><th>A</th><th>B</th><th>Y</th></tr></thead>
+          <tbody><tr><td>0</td><td>0</td><td>1</td></tr><tr><td>0</td><td>1</td><td>0</td></tr><tr><td>1</td><td>0</td><td>0</td></tr><tr><td>1</td><td>1</td><td>0</td></tr></tbody>
+        </table>
+        <p class="dim" style="margin-bottom:0;">Only true when <i>both</i> inputs are false — the exact opposite of OR.</p>
+      </div>
+    </div>
+
+    <div class="callout good">
+      <div class="callout-title">Why are these called "Universal"?</div>
+      <p style="margin-bottom:0">Here's something genuinely beautiful: using <b>only NAND gates</b> (or, separately, only NOR gates), you can build <i>every other gate that exists</i> — AND, OR, NOT, XOR, everything. This is why chip manufacturers often build entire circuits out of a single repeated gate type — it massively simplifies manufacturing. For example, wire both inputs of a NAND gate to the same signal, and you've built a NOT gate for free — because <code>(A·A)' = A'</code>.</p>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="xor-xnor-gates" data-nav="XOR & XNOR gates">
+    <h2>XOR and XNOR — The "Difference Detectors"</h2>
+    <div class="grid-2">
+      <div class="gate-card" style="margin:0;">
+        <svg viewBox="0 0 160 110" width="100%" height="120" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22,20 C37,38 37,72 22,90" fill="none" stroke="#c792ea" stroke-width="2.5"/>
+          <line x1="4" y1="35" x2="34" y2="35" stroke="#93a4b8" stroke-width="2"/>
+          <line x1="4" y1="75" x2="34" y2="75" stroke="#93a4b8" stroke-width="2"/>
+          <path d="M31,20 C56,20 81,35 101,55 C81,75 56,90 31,90 C46,72 46,38 31,20 Z" fill="#141b26" stroke="#c792ea" stroke-width="2.5"/>
+          <line x1="101" y1="55" x2="150" y2="55" stroke="#93a4b8" stroke-width="2"/>
+          <text x="0" y="30" fill="#93a4b8" font-size="12" font-family="ui-monospace,monospace">A</text>
+          <text x="0" y="70" fill="#93a4b8" font-size="12" font-family="ui-monospace,monospace">B</text>
+        </svg>
+        <h3 style="margin-top:6px;">XOR (Exclusive OR)</h3>
+        <span class="expr">Y = A ⊕ B</span>
+        <table><thead><tr><th>A</th><th>B</th><th>Y</th></tr></thead>
+          <tbody><tr><td>0</td><td>0</td><td>0</td></tr><tr><td>0</td><td>1</td><td>1</td></tr><tr><td>1</td><td>0</td><td>1</td></tr><tr><td>1</td><td>1</td><td>0</td></tr></tbody>
+        </table>
+        <p class="dim" style="margin-bottom:0;">True only when A and B <b>disagree</b> (different values). This is exactly what you need to detect a difference — used heavily in adders, which you'll build in Chapter 16.</p>
+      </div>
+      <div class="gate-card" style="margin:0;">
+        <svg viewBox="0 0 160 110" width="100%" height="120" xmlns="http://www.w3.org/2000/svg">
+          <path d="M18,20 C33,38 33,72 18,90" fill="none" stroke="#c792ea" stroke-width="2.5"/>
+          <line x1="2" y1="35" x2="30" y2="35" stroke="#93a4b8" stroke-width="2"/>
+          <line x1="2" y1="75" x2="30" y2="75" stroke="#93a4b8" stroke-width="2"/>
+          <path d="M27,20 C52,20 77,35 97,55 C77,75 52,90 27,90 C42,72 42,38 27,20 Z" fill="#141b26" stroke="#c792ea" stroke-width="2.5"/>
+          <circle cx="106" cy="55" r="7" fill="#141b26" stroke="#c792ea" stroke-width="2.5"/>
+          <line x1="113" y1="55" x2="150" y2="55" stroke="#93a4b8" stroke-width="2"/>
+          <text x="0" y="30" fill="#93a4b8" font-size="12" font-family="ui-monospace,monospace">A</text>
+          <text x="0" y="70" fill="#93a4b8" font-size="12" font-family="ui-monospace,monospace">B</text>
+        </svg>
+        <h3 style="margin-top:6px;">XNOR (Exclusive NOR)</h3>
+        <span class="expr">Y = (A ⊕ B)'</span>
+        <table><thead><tr><th>A</th><th>B</th><th>Y</th></tr></thead>
+          <tbody><tr><td>0</td><td>0</td><td>1</td></tr><tr><td>0</td><td>1</td><td>0</td></tr><tr><td>1</td><td>0</td><td>0</td></tr><tr><td>1</td><td>1</td><td>1</td></tr></tbody>
+        </table>
+        <p class="dim" style="margin-bottom:0;">True only when A and B <b>agree</b> (same value). This makes it a natural "equality checker," used inside comparator circuits (Chapter 19).</p>
+      </div>
+    </div>
+    <div class="analogy-box">
+      <div class="tag">Analogy · Two Friends Who Only Agree to Disagree</div>
+      <p style="margin-bottom:0">Imagine A and B are two people voting Yes/No on something. XOR's bulb glows only when they <b>voted differently</b>. XNOR's bulb glows only when they <b>voted the same</b>. That's the entire idea — XOR spots disagreement, XNOR spots agreement.</p>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="boolean-algebra" data-nav="Boolean algebra laws">
+    <h2>Boolean Algebra — The Rules of the Game</h2>
+    <p>Boolean algebra is just ordinary algebra, except every variable can only ever be 0 or 1. It gives us a set of proven laws that let us simplify a complicated logic expression into a smaller, cheaper one — smaller expressions mean fewer gates, which means a smaller, faster, cheaper chip.</p>
+    <table>
+      <thead><tr><th>Law</th><th>AND form</th><th>OR form</th></tr></thead>
+      <tbody>
+        <tr><td>Identity</td><td><code>A · 1 = A</code></td><td><code>A + 0 = A</code></td></tr>
+        <tr><td>Null</td><td><code>A · 0 = 0</code></td><td><code>A + 1 = 1</code></td></tr>
+        <tr><td>Idempotent</td><td><code>A · A = A</code></td><td><code>A + A = A</code></td></tr>
+        <tr><td>Complement</td><td><code>A · A' = 0</code></td><td><code>A + A' = 1</code></td></tr>
+        <tr><td>Commutative</td><td><code>A·B = B·A</code></td><td><code>A+B = B+A</code></td></tr>
+        <tr><td>Associative</td><td><code>(A·B)·C = A·(B·C)</code></td><td><code>(A+B)+C = A+(B+C)</code></td></tr>
+        <tr><td>Distributive</td><td><code>A·(B+C) = AB+AC</code></td><td><code>A+(B·C) = (A+B)(A+C)</code></td></tr>
+        <tr><td>Absorption</td><td><code>A + A·B = A</code></td><td><code>A·(A+B) = A</code></td></tr>
+      </tbody>
+    </table>
+    <div class="callout warn">
+      <div class="callout-title">A sneak peek: DeMorgan's Theorem</div>
+      There's one more extremely powerful law — DeMorgan's Theorem, which lets you flip a NAND into an OR-of-inverted-inputs, and a NOR into an AND-of-inverted-inputs: <code>(A·B)' = A' + B'</code> and <code>(A+B)' = A'·B'</code>. It's so important it gets its own full chapter next (Chapter 3), including Karnaugh Maps — a visual shortcut for simplification.
+    </div>
+
+    <h3>Worked Simplification Example</h3>
+    <p>Let's simplify <code>Y = A·B + A·B' + A'·B</code> using the laws above:</p>
+    <div class="codeblock">
+      <div class="code-head"><span>boolean simplification</span></div>
+      <pre>Y = A·B + A·B' + A'·B
+  = A·(B + B') + A'·B     <span class="cmt">// grouped first two terms, factored out A</span>
+  = A·(1) + A'·B          <span class="cmt">// Complement law: B + B' = 1</span>
+  = A + A'·B              <span class="cmt">// Identity law: A·1 = A</span>
+  = A + B                 <span class="cmt">// Absorption-family identity: A + A'B = A + B</span></pre>
+    </div>
+    <p>We turned a 3-term, 5-variable-use expression into just <code>A + B</code> — a single OR gate instead of two AND gates, one OR gate, and two inverters. That's the entire point of Boolean algebra: fewer gates, same behavior.</p>
+  </section>
+
+  <section class="chapter-section" id="summary" data-nav="Summary & key points">
+    <h2>Summary</h2>
+    <p>A logic gate is a fixed rule turning 1/0 inputs into a 1/0 output. AND needs everyone to agree "yes." OR needs just one "yes." NOT flips whatever it's given. NAND and NOR are AND/OR with the answer flipped, and remarkably, either one alone can build every other gate — making them "universal." XOR detects disagreement between inputs; XNOR detects agreement. Boolean algebra is the paper-and-pencil rulebook that lets us simplify long logic expressions into the smallest possible gate count before we ever build anything.</p>
+    <h3>Key Points</h3>
+    <ul>
+      <li>AND = all must be 1. OR = at least one must be 1. NOT = flip it.</li>
+      <li>A bubble on a gate symbol always means "invert the output."</li>
+      <li>NAND and NOR are each individually "universal" — every other gate can be built from just one of them.</li>
+      <li>XOR = disagreement detector. XNOR = agreement detector.</li>
+      <li>Boolean algebra laws let you shrink expressions to save real gates on a real chip.</li>
+    </ul>
+    <div class="mem-trick"><b>Memory Trick:</b> "AND is strict, OR is easy, NOT is a rebel, and a bubble always means 'flip it.'" For XOR/XNOR: "X-OR eXcludes agreement, X-NOR is the opposite."</div>
+  </section>
+
+  <section class="chapter-section" id="practice-questions" data-nav="Practice questions">
+    <h2>Practice Questions</h2>
+    <ol>
+      <li>Draw the truth table for a 3-input AND gate.</li>
+      <li>Simplify: <code>Y = A + A'·B</code></li>
+      <li>Build a NOT gate using only a NOR gate (hint: tie both inputs together, same trick as NAND).</li>
+      <li>What does XOR output for A=1, B=1, C=1 if wired as a 3-input XOR chain?</li>
+    </ol>
+  </section>
+
+  <section class="chapter-section" id="interview-questions" data-nav="Interview questions">
+    <h2>Interview Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>Why are NAND and NOR called "universal gates"?</summary><div class="answer">Because any Boolean function — and therefore any other gate — can be constructed using only NAND gates, or, separately, using only NOR gates. This simplifies chip manufacturing to a single repeated cell.</div></details></li>
+      <li><details class="qa"><summary>How do you build a NOT gate from a NAND gate?</summary><div class="answer">Tie both inputs of the NAND gate to the same input signal. Since (A·A)' = A', the NAND behaves exactly like an inverter.</div></details></li>
+      <li><details class="qa"><summary>What's the practical use of an XOR gate?</summary><div class="answer">It's the core building block of binary adders (it computes the sum bit ignoring carry) and is used in parity checkers and simple encryption/comparison circuits.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="viva-questions" data-nav="Viva questions">
+    <h2>Viva Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>State the Boolean expression for NOR.</summary><div class="answer">Y = (A + B)'</div></details></li>
+      <li><details class="qa"><summary>What is the output of an XNOR gate when both inputs are 0?</summary><div class="answer">1 — XNOR is true whenever inputs agree, and 0=0 counts as agreement.</div></details></li>
+      <li><details class="qa"><summary>Simplify A·B + A·B' live on the board.</summary><div class="answer">A·(B+B') = A·1 = A.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="assignments" data-nav="Assignments & answers">
+    <h2>Assignments</h2>
+    <p>1. Draw all 7 gate symbols from memory along with their truth tables. 2. Prove, using a truth table, that a NAND-based NOT gate behaves identically to a real NOT gate. 3. Simplify <code>Y = (A+B)·(A+B')</code> step by step, showing every law used.</p>
+    <details class="qa" style="margin-top:16px;">
+      <summary>Reveal Answers to Practice Questions</summary>
+      <div class="answer">
+        1) Output is 1 only when all 3 inputs are 1; every other combination gives 0 (8 rows total).<br>
+        2) A + A'B = A + B (same identity used in the worked example) → simplifies to <code>A + B</code>.<br>
+        3) Tie both NOR inputs together: (A+A)' = A'.<br>
+        4) With 3 inputs chained, XOR outputs 1 when an <i>odd</i> number of inputs are 1 — for A=B=C=1 (three 1s, odd count), output = 1.
+      </div>
+    </details>
+  </section>
+
+  <div class="footer-nav">
+    <a href="chapter-01.html"><span class="lbl">← BACK</span>Electricity, Voltage, Current & Number Systems</a>
+    <a href="chapter-03.html" class="next"><span class="lbl">NEXT</span>DeMorgan's Theorem & Karnaugh Maps</a>
+  </div>
+
+</article>
+</div>
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">↑</button>
+
+<script>window.CURRENT_CHAPTER_ID = "ch-02";</script>
+<script src="shared/nav.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => { const t = document.getElementById("reading-time"); const t2 = document.getElementById("reading-time-2"); if(t && t2){ const obs = new MutationObserver(()=>{ t2.textContent = t.textContent; }); obs.observe(t, {childList:true}); } });</script>
+</body>
+</html>
