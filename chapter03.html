@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 3 · DeMorgan's Theorem & Karnaugh Maps — FPGA & Verilog Handbook</title>
+<link rel="stylesheet" href="shared/styles.css">
+<style>
+  .kmap{ margin: 0 auto; width:auto; }
+  .kmap td, .kmap th{ width:64px; height:50px; font-family:var(--font-mono); font-size:17px; font-weight:700; }
+  .kmap th{ font-size:12.5px; }
+  .grp-c{ background: rgba(34,211,238,.22); box-shadow: inset 0 0 0 2.5px #22d3ee; }
+  .grp-ab{ background: rgba(245,165,36,.22); box-shadow: inset 0 0 0 2.5px #f5a524; }
+  .grp-both{ background: linear-gradient(135deg, rgba(34,211,238,.28) 50%, rgba(245,165,36,.28) 50%); box-shadow: inset 0 0 0 2.5px #c792ea; }
+  .legend{ display:flex; gap:18px; justify-content:center; flex-wrap:wrap; margin-top:14px; font-size:12.5px; font-family:var(--font-mono); }
+  .legend span{ display:flex; align-items:center; gap:6px; }
+  .legend i{ width:14px; height:14px; border-radius:3px; display:inline-block; }
+</style>
+</head>
+<body>
+<div class="board-grid"></div>
+
+<div class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Open chapter menu"><span></span><span></span><span></span></button>
+  <div class="topbar-title"><b>Chapter 03</b> · DeMorgan's Theorem & Karnaugh Maps</div>
+  <div class="topbar-right"><span id="reading-time" class="dim" style="font-family:var(--font-mono);font-size:12px;"></span></div>
+</div>
+<div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="logo">◈ FPGA & VERILOG HANDBOOK</div>
+    <div class="tag">From absolute zero to a working FPGA board</div>
+  </div>
+  <div class="sidebar-search"><input type="text" id="sidebar-search-input" placeholder="Search chapters..."></div>
+  <div class="sidebar-group" id="sidebar-list"></div>
+</nav>
+
+<div class="page-wrap">
+<article class="sheet">
+
+  <div class="eyebrow">Part 1 · Digital Electronics Foundations — Chapter 03</div>
+  <h1 class="h-title">DeMorgan's Theorem & Karnaugh Maps</h1>
+  <p class="h-sub">Chapter 2 taught you to simplify Boolean expressions using algebra laws, one line at a time. This chapter gives you a second, more powerful trick — DeMorgan's Theorem for rewriting NAND/NOR expressions, and Karnaugh Maps, a visual shortcut that turns simplification into "spot the pattern" instead of tedious algebra.</p>
+  <div class="meta-row"><span>📖 Beginner Level</span><span>🕐 <span id="reading-time-2">—</span></span><span>🧩 9 sections</span></div>
+
+  <section class="chapter-section" id="intro" data-nav="Why this chapter matters">
+    <h2>Why This Chapter Matters</h2>
+    <p>In real chip design, engineers are almost never handed a neat Boolean expression. More often, they're handed a truth table — a customer says "I want this output to be 1 exactly when these input combinations happen." Turning a truth table into the <i>smallest possible</i> circuit is an entire skill of its own, and this chapter gives you both tools for it: DeMorgan's Theorem (for rewriting between AND/OR/NAND/NOR forms) and Karnaugh Maps (for visually finding the smallest expression from a truth table, almost by eye).</p>
+  </section>
+
+  <section class="chapter-section" id="demorgans-theorem" data-nav="DeMorgan's Theorem">
+    <h2>DeMorgan's Theorem</h2>
+    <p>DeMorgan's Theorem gives us two rules for "breaking apart" a NOT that's sitting over a group of ANDed or ORed variables:</p>
+    <div class="grid-2">
+      <div class="callout">
+        <div class="callout-title">Rule 1</div>
+        <span class="expr" style="display:block;text-align:center;font-size:16px;">(A · B)' = A' + B'</span>
+        <p style="margin:10px 0 0;">"NOT of an AND" becomes "OR of the NOTs." In plain English: <i>NOT (both A and B)</i> means <i>either A is false, or B is false</i> (or both).</p>
+      </div>
+      <div class="callout">
+        <div class="callout-title">Rule 2</div>
+        <span class="expr" style="display:block;text-align:center;font-size:16px;">(A + B)' = A' · B'</span>
+        <p style="margin:10px 0 0;">"NOT of an OR" becomes "AND of the NOTs." In plain English: <i>NOT (A or B)</i> means <i>A is false, and B is false, both at once</i>.</p>
+      </div>
+    </div>
+
+    <div class="analogy-box">
+      <div class="tag">Analogy · The Party Invitation</div>
+      <p style="margin-bottom:0">Suppose a party requires "you must bring a gift <b>AND</b> wear formal clothes" to be allowed in. Saying "<b>NOT</b> allowed in" then simply means: "you didn't bring a gift, <b>OR</b> you didn't wear formal clothes (or neither)." That's DeMorgan's Rule 1 in real life — negating an AND condition flips it into an OR of the negated pieces.</p>
+    </div>
+
+    <h3>Proving It With a Truth Table</h3>
+    <table>
+      <thead><tr><th>A</th><th>B</th><th>(A·B)'</th><th>A'</th><th>B'</th><th>A' + B'</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td>0</td><td>1</td><td>1</td><td>1</td><td>1</td></tr>
+        <tr><td>0</td><td>1</td><td>1</td><td>1</td><td>0</td><td>1</td></tr>
+        <tr><td>1</td><td>0</td><td>1</td><td>0</td><td>1</td><td>1</td></tr>
+        <tr><td>1</td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+      </tbody>
+    </table>
+    <p>The columns <code>(A·B)'</code> and <code>A' + B'</code> match on every single row — that's what "proof by truth table" means: if two expressions produce identical outputs for every possible input combination, they are logically identical.</p>
+
+    <h3>What This Means For Gates</h3>
+    <p>DeMorgan's theorem is exactly why <b>a NAND gate and an "OR gate with inverted inputs" behave identically</b> — and why <b>a NOR gate and an "AND gate with inverted inputs" behave identically</b>. This matters a lot in real chip design, because sometimes only one type of gate is cheaply available, and DeMorgan lets you swap freely between forms.</p>
+    <div class="grid-2">
+      <div class="gate-card" style="margin:8px 0;">
+        <svg viewBox="0 0 170 110" width="100%" height="115" xmlns="http://www.w3.org/2000/svg">
+          <line x1="4" y1="35" x2="24" y2="35" stroke="#93a4b8" stroke-width="2"/>
+          <line x1="4" y1="75" x2="24" y2="75" stroke="#93a4b8" stroke-width="2"/>
+          <circle cx="31" cy="35" r="6" fill="#141b26" stroke="#c792ea" stroke-width="2"/>
+          <circle cx="31" cy="75" r="6" fill="#141b26" stroke="#c792ea" stroke-width="2"/>
+          <path d="M37,20 C58,20 79,35 97,55 C79,75 58,90 37,90 C50,72 50,38 37,20 Z" fill="#141b26" stroke="#c792ea" stroke-width="2.5"/>
+          <line x1="97" y1="55" x2="150" y2="55" stroke="#93a4b8" stroke-width="2"/>
+          <text x="70" y="105" text-anchor="middle" fill="#93a4b8" font-size="11" font-family="ui-monospace,monospace">OR + inverted inputs</text>
+        </svg>
+        <p class="dim" style="text-align:center;margin:0;">≡ same truth table as a <b>NAND</b> gate</p>
+      </div>
+      <div class="gate-card" style="margin:8px 0;">
+        <svg viewBox="0 0 170 110" width="100%" height="115" xmlns="http://www.w3.org/2000/svg">
+          <line x1="4" y1="35" x2="24" y2="35" stroke="#93a4b8" stroke-width="2"/>
+          <line x1="4" y1="75" x2="24" y2="75" stroke="#93a4b8" stroke-width="2"/>
+          <circle cx="31" cy="35" r="6" fill="#141b26" stroke="#c792ea" stroke-width="2"/>
+          <circle cx="31" cy="75" r="6" fill="#141b26" stroke="#c792ea" stroke-width="2"/>
+          <path d="M37,20 L72,20 A30,30 0 0 1 72,90 L37,90 Z" fill="#141b26" stroke="#c792ea" stroke-width="2.5"/>
+          <line x1="102" y1="55" x2="150" y2="55" stroke="#93a4b8" stroke-width="2"/>
+          <text x="70" y="105" text-anchor="middle" fill="#93a4b8" font-size="11" font-family="ui-monospace,monospace">AND + inverted inputs</text>
+        </svg>
+        <p class="dim" style="text-align:center;margin:0;">≡ same truth table as a <b>NOR</b> gate</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="sop-pos" data-nav="SOP & POS forms">
+    <h2>Sum of Products (SOP) and Product of Sums (POS)</h2>
+    <p>Before we can use Karnaugh Maps, we need two vocabulary words engineers use constantly:</p>
+    <ul>
+      <li><b>Minterm</b>: a product (AND) term where every variable appears exactly once, either plain or inverted — e.g. for 3 variables A,B,C, the minterm for row A=1,B=0,C=1 is <code>A·B'·C</code>. Each row of a truth table has exactly one minterm.</li>
+      <li><b>Sum of Products (SOP)</b>: an expression built by OR-ing together the minterms where the output is 1. This is the most common form you'll write.</li>
+      <li><b>Maxterm</b>: the OR equivalent — a sum term true for every row except one.</li>
+      <li><b>Product of Sums (POS)</b>: an expression built by AND-ing together maxterms where the output is 0. Less common, but sometimes gives a smaller circuit.</li>
+    </ul>
+    <p>Engineers often write a function directly from its minterm list using shorthand like <code>F(A,B,C) = Σm(1,3,5,7)</code> — meaning "F is 1 for minterms number 1, 3, 5, and 7, and 0 everywhere else." We'll use exactly this notation in the K-map example below.</p>
+  </section>
+
+  <section class="chapter-section" id="kmap-intro" data-nav="What is a Karnaugh Map?">
+    <h2>What Is a Karnaugh Map?</h2>
+    <p>A Karnaugh Map (or "K-map") is just a truth table rearranged into a grid, where <b>every cell that is physically next to another cell differs by exactly one bit</b>. That single design choice is the entire magic trick — because in Boolean algebra, two minterms differing by only one bit can always be combined into one smaller term (that's exactly what the Complement law <code>B + B' = 1</code> is doing under the hood, silently, every time).</p>
+    <div class="callout">
+      <div class="callout-title">Why the column order looks weird (00, 01, 11, 10)</div>
+      You'll notice K-map columns/rows are never labelled in plain counting order (00, 01, 10, 11). Instead they use <b>Gray code</b> order: 00 → 01 → 11 → 10. Gray code guarantees that every step to the neighboring column changes <i>only one bit</i>. If we used plain counting order, jumping from 01 to 10 would change <i>two</i> bits at once, breaking the "neighbors differ by 1 bit" rule the whole method depends on.
+    </div>
+  </section>
+
+  <section class="chapter-section" id="kmap-example" data-nav="Worked K-map example">
+    <h2>Worked Example: 3-Variable K-map</h2>
+    <p>Let's simplify: <code>F(A,B,C) = Σm(1, 2, 3, 5, 7)</code> — meaning F = 1 for minterms 1,2,3,5,7 and 0 for the rest (0,4,6).</p>
+
+    <table style="max-width:200px;margin:0 auto 10px;">
+      <thead><tr><th>m</th><th>A</th><th>B</th><th>C</th><th>F</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+        <tr><td>1</td><td>0</td><td>0</td><td>1</td><td>1</td></tr>
+        <tr><td>2</td><td>0</td><td>1</td><td>0</td><td>1</td></tr>
+        <tr><td>3</td><td>0</td><td>1</td><td>1</td><td>1</td></tr>
+        <tr><td>4</td><td>1</td><td>0</td><td>0</td><td>0</td></tr>
+        <tr><td>5</td><td>1</td><td>0</td><td>1</td><td>1</td></tr>
+        <tr><td>6</td><td>1</td><td>1</td><td>0</td><td>0</td></tr>
+        <tr><td>7</td><td>1</td><td>1</td><td>1</td><td>1</td></tr>
+      </tbody>
+    </table>
+
+    <p>Now the same 8 rows, rearranged into a K-map grid (rows = A, columns = BC in Gray code order):</p>
+    <table class="kmap">
+      <thead><tr><th></th><th>BC=00</th><th>BC=01</th><th>BC=11</th><th>BC=10</th></tr></thead>
+      <tbody>
+        <tr><th>A=0</th><td>0</td><td class="grp-c">1</td><td class="grp-both">1</td><td class="grp-ab">1</td></tr>
+        <tr><th>A=1</th><td>0</td><td class="grp-c">1</td><td class="grp-c">1</td><td>0</td></tr>
+      </tbody>
+    </table>
+    <div class="legend">
+      <span><i style="background:rgba(34,211,238,.5);border:1.5px solid #22d3ee;"></i> Group 1 (4 cells) → simplifies to <b>C</b></span>
+      <span><i style="background:rgba(245,165,36,.5);border:1.5px solid #f5a524;"></i> Group 2 (2 cells) → simplifies to <b>A'B</b></span>
+    </div>
+
+    <h3>How To Read The Grouping</h3>
+    <p><b>Cyan group:</b> all four cells where C=1 (both BC=01 and BC=11 columns, across both rows of A) are 1. Since A and B both change across this group but C stays fixed at 1, this whole group of 4 collapses down to just <code>C</code>.</p>
+    <p><b>Amber group:</b> the two cells where A=0 and B=1 (columns BC=10 and BC=11, row A=0) are both 1. A stays 0 and B stays 1 across this pair, while C changes — so it collapses to <code>A'·B</code>.</p>
+    <p>Notice the cell at A=0, BC=11 belongs to <i>both</i> groups at once (shown with the split color) — in Karnaugh Maps, <b>groups are allowed to overlap</b>. Reusing a cell doesn't cost anything extra; the goal is simply to cover every 1 using the fewest, largest groups possible.</p>
+
+    <div class="callout good">
+      <div class="callout-title">Final Simplified Result</div>
+      <span class="expr" style="font-size:16px;">F(A,B,C) = C + A'B</span>
+    </div>
+    <p>Compare that to what you'd have gotten by directly OR-ing all five minterms from the truth table — a 5-term, 15-variable-use monster expression. The K-map found an equivalent, verified-correct 2-term expression just by spotting adjacent rectangles of 1s.</p>
+  </section>
+
+  <section class="chapter-section" id="kmap-rules" data-nav="Grouping rules">
+    <h2>The Rules For Making Valid Groups</h2>
+    <ol>
+      <li>Group only 1s together (for SOP) — never mix 1s and 0s in the same group.</li>
+      <li>Every group's size must be a power of 2: 1, 2, 4, 8, 16 cells... never 3, 5, 6, or 7.</li>
+      <li>Groups must form a rectangle (or a square) — never an L-shape or a diagonal.</li>
+      <li>The grid <b>wraps around</b> — the leftmost column is considered adjacent to the rightmost column, and the top row is adjacent to the bottom row. Many beginners miss this and lose valid, larger groupings.</li>
+      <li>Groups are allowed to overlap and reuse cells.</li>
+      <li>Always prefer the <b>largest possible groups first</b> (bigger group = fewer variables in that term = simpler expression), and use the <b>fewest number of groups</b> needed to cover every 1 at least once.</li>
+    </ol>
+
+    <h3>4-Variable K-maps Work The Same Way, Just Bigger</h3>
+    <p>For 4 variables (A,B,C,D), you use a 4×4 grid: rows = AB in Gray code (00,01,11,10), columns = CD in Gray code (00,01,11,10) — 16 cells total, one per minterm. The exact same rules apply, just with more room for bigger groups (up to a full group of 8, or even all 16 if the function is always 1).</p>
+  </section>
+
+  <section class="chapter-section" id="dont-cares" data-nav="Don't-care conditions">
+    <h2>Don't-Care Conditions</h2>
+    <p>Sometimes a certain input combination can <i>never actually happen</i> in the real circuit — for example, a 4-bit input that's supposed to only ever represent digits 0-9 (as in BCD) means input patterns 10-15 will never occur. For those impossible rows, we don't care whether the K-map treats them as 0 or 1 — we mark them with an <code>X</code> in the grid, and we're free to treat each <code>X</code> as whichever value (0 or 1) helps us build a bigger, simpler group. This is a small but genuinely powerful trick professional designers use constantly.</p>
+  </section>
+
+  <section class="chapter-section" id="summary" data-nav="Summary & key points">
+    <h2>Summary</h2>
+    <p>DeMorgan's Theorem lets you convert freely between AND/OR/NAND/NOR forms: <code>(A·B)' = A'+B'</code> and <code>(A+B)' = A'·B'</code>. Karnaugh Maps rearrange a truth table into a grid where neighboring cells differ by exactly one bit (using Gray code ordering), letting you spot simplifiable groups by eye instead of grinding through algebra. Groups must be sized in powers of two, form clean rectangles, can wrap around the grid edges, and can overlap. Don't-care conditions give you extra freedom to build even bigger groups when certain input combinations are physically impossible.</p>
+    <h3>Key Points</h3>
+    <ul>
+      <li><code>(A·B)' = A' + B'</code> and <code>(A+B)' = A'·B'</code></li>
+      <li>SOP = OR of minterms where F=1. POS = AND of maxterms where F=0.</li>
+      <li>K-map neighbors differ by exactly 1 bit — this is why Gray code ordering is used.</li>
+      <li>Groups: powers of 2 in size, rectangular, can wrap around edges, can overlap.</li>
+      <li>Don't-cares (X) can be treated as 0 or 1, whichever gives a bigger group.</li>
+    </ul>
+    <div class="mem-trick"><b>Memory Trick:</b> DeMorgan — "break the bar, flip the sign, split the term" (the NOT bar breaks apart, AND⇄OR swaps). For K-maps: "adjacent cells are always just one bit apart — that's the whole secret."</div>
+  </section>
+
+  <section class="chapter-section" id="practice-questions" data-nav="Practice questions">
+    <h2>Practice Questions</h2>
+    <ol>
+      <li>Apply DeMorgan's theorem to simplify: <code>(A'·B·C)'</code></li>
+      <li>Draw the K-map for <code>F(A,B) = Σm(0,1,3)</code> and find the simplified expression.</li>
+      <li>Draw the K-map for <code>F(A,B,C) = Σm(0,1,2,3)</code> and simplify it.</li>
+      <li>Why must every K-map group size be a power of 2?</li>
+    </ol>
+  </section>
+
+  <section class="chapter-section" id="interview-questions" data-nav="Interview questions">
+    <h2>Interview Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>Why does a K-map use Gray code ordering instead of binary counting order?</summary><div class="answer">So that every physically adjacent cell differs by exactly one bit, which guarantees any two adjacent 1s can always be legally combined into a smaller term using Boolean algebra's complement law.</div></details></li>
+      <li><details class="qa"><summary>What is a don't-care condition and why is it useful?</summary><div class="answer">It represents an input combination that can never actually occur in the real system. Since its value doesn't matter, the designer can assign it 0 or 1 — whichever produces a larger, simpler K-map grouping.</div></details></li>
+      <li><details class="qa"><summary>State DeMorgan's two theorems.</summary><div class="answer">(A·B)' = A' + B', and (A+B)' = A'·B'.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="viva-questions" data-nav="Viva questions">
+    <h2>Viva Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>How many cells does a 4-variable K-map have?</summary><div class="answer">16 cells (2⁴), arranged as a 4×4 grid.</div></details></li>
+      <li><details class="qa"><summary>Can K-map groups overlap?</summary><div class="answer">Yes — a single 1-cell can belong to more than one group if that helps form larger, valid groupings.</div></details></li>
+      <li><details class="qa"><summary>What shape must a K-map group always form?</summary><div class="answer">A rectangle or square, with a cell-count that is a power of 2 — never an L-shape, diagonal, or odd count like 3 or 5.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="assignments" data-nav="Assignments & answers">
+    <h2>Assignments</h2>
+    <p>1. Take any 4-variable truth table from a textbook and solve it fully with a K-map, showing every group. 2. Prove DeMorgan's second theorem, <code>(A+B)' = A'·B'</code>, using a full truth table. 3. Explain in your own words why the K-map "wrap-around" adjacency rule exists (hint: think about what Gray code guarantees at the edges).</p>
+    <details class="qa" style="margin-top:16px;">
+      <summary>Reveal Answers to Practice Questions</summary>
+      <div class="answer">
+        1) (A'BC)' = A + B' + C' <br>
+        2) F(A,B)=Σm(0,1,3): K-map gives groups A' (m0,m1) and B (m1,m3) → F = A' + B<br>
+        3) F(A,B,C)=Σm(0,1,2,3): this is the entire A=0 row → F = A'<br>
+        4) Because a group's simplified term is found by removing whichever variables change across the group — this only works cleanly when the group size is 1, 2, 4, 8... (a power of 2), since that's the only way half the cells can have a variable at 0 and half at 1, in a clean rectangular pattern.
+      </div>
+    </details>
+  </section>
+
+  <div class="footer-nav">
+    <a href="chapter-02.html"><span class="lbl">← BACK</span>Logic Gates & Boolean Algebra</a>
+    <a href="chapter-04.html" class="next"><span class="lbl">NEXT</span>Combinational Circuits</a>
+  </div>
+
+</article>
+</div>
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">↑</button>
+
+<script>window.CURRENT_CHAPTER_ID = "ch-03";</script>
+<script src="shared/nav.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => { const t = document.getElementById("reading-time"); const t2 = document.getElementById("reading-time-2"); if(t && t2){ const obs = new MutationObserver(()=>{ t2.textContent = t.textContent; }); obs.observe(t, {childList:true}); } });</script>
+</body>
+</html>
