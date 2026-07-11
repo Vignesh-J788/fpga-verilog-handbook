@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 17 · Multiplexer & Demultiplexer — FPGA & Verilog Handbook</title>
+<link rel="stylesheet" href="shared/styles.css">
+</head>
+<body>
+<div class="board-grid"></div>
+
+<div class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Open chapter menu"><span></span><span></span><span></span></button>
+  <div class="topbar-title"><b>Chapter 17</b> · Multiplexer & Demultiplexer</div>
+  <div class="topbar-right"><span id="reading-time" class="dim" style="font-family:var(--font-mono);font-size:12px;"></span></div>
+</div>
+<div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="logo">◈ FPGA & VERILOG HANDBOOK</div>
+    <div class="tag">From absolute zero to a working FPGA board</div>
+  </div>
+  <div class="sidebar-search"><input type="text" id="sidebar-search-input" placeholder="Search chapters..."></div>
+  <div class="sidebar-group" id="sidebar-list"></div>
+</nav>
+
+<div class="page-wrap">
+<article class="sheet">
+
+  <div class="eyebrow">Part 5 · Verilog Programs — Chapter 17</div>
+  <h1 class="h-title">Multiplexer & Demultiplexer</h1>
+  <p class="h-sub">Full theory in Chapter 4. Here: a 2:1 MUX, a 4:1 MUX (two different ways to write it — one of which will genuinely surprise you), a 1:4 DEMUX, and complete testbenches for each.</p>
+  <div class="meta-row"><span>📖 Beginner Level</span><span>🕐 <span id="reading-time-2">—</span></span><span>🧩 6 sections</span></div>
+
+  <section class="chapter-section" id="recap" data-nav="Quick recap">
+    <h2>Quick Recap (Full Theory in Chapter 4)</h2>
+    <p>A multiplexer (MUX) routes one of several data inputs through to a single output, chosen by select lines. A demultiplexer (DEMUX) does the reverse: routes one input to one of several outputs, chosen by select lines. n select lines give you 2ⁿ choices.</p>
+  </section>
+
+  <section class="chapter-section" id="mux2to1" data-nav="2:1 MUX">
+    <h2>2:1 Multiplexer</h2>
+    <div class="codeblock">
+      <div class="code-head"><span>mux2to1.v — dataflow (ternary operator, Chapter 10)</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">mux2to1</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">a</span>, <span class="id">b</span>, <span class="id">sel</span>,
+    <span class="kw">output</span> <span class="typ">wire</span> <span class="id">y</span>
+);
+    <span class="kw">assign</span> <span class="id">y</span> = <span class="id">sel</span> ? <span class="id">b</span> : <span class="id">a</span>;
+<span class="kw">endmodule</span></pre>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="mux4to1" data-nav="4:1 MUX (two ways)">
+    <h2>4:1 Multiplexer — Two Different Ways to Write It</h2>
+    <p>The "traditional" way uses <code>case</code>, exactly as you'd expect:</p>
+    <div class="codeblock">
+      <div class="code-head"><span>mux4to1_case.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">mux4to1_case</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> [3:0] <span class="id">in</span>,
+    <span class="kw">input</span>  <span class="typ">wire</span> [1:0] <span class="id">sel</span>,
+    <span class="kw">output</span> <span class="typ">reg</span>  <span class="id">y</span>
+);
+    <span class="kw">always</span> @(*) <span class="kw">begin</span>
+        <span class="kw">case</span> (<span class="id">sel</span>)
+            2'<span class="typ">b</span><span class="num">00</span>: <span class="id">y</span> = <span class="id">in</span>[0];
+            2'<span class="typ">b</span><span class="num">01</span>: <span class="id">y</span> = <span class="id">in</span>[1];
+            2'<span class="typ">b</span><span class="num">10</span>: <span class="id">y</span> = <span class="id">in</span>[2];
+            2'<span class="typ">b</span><span class="num">11</span>: <span class="id">y</span> = <span class="id">in</span>[3];
+            <span class="kw">default</span>: <span class="id">y</span> = 1'<span class="typ">b</span>0;
+        <span class="kw">endcase</span>
+    <span class="kw">end</span>
+<span class="kw">endmodule</span></pre>
+    </div>
+    <div class="callout good">
+      <div class="callout-title">A genuinely surprising shortcut</div>
+      Verilog allows <b>variable (dynamic) bit-selection</b> — meaning <code>sel</code> itself can be used directly as an index into <code>in</code>. The entire 4:1 MUX above collapses to one line:
+    </div>
+    <div class="codeblock">
+      <div class="code-head"><span>mux4to1_dataflow.v — the ENTIRE mux in one line</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">mux4to1_dataflow</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> [3:0] <span class="id">in</span>,
+    <span class="kw">input</span>  <span class="typ">wire</span> [1:0] <span class="id">sel</span>,
+    <span class="kw">output</span> <span class="typ">wire</span> <span class="id">y</span>
+);
+    <span class="kw">assign</span> <span class="id">y</span> = <span class="id">in</span>[<span class="id">sel</span>];   <span class="cmt">// sel directly indexes into in — this IS a complete 4:1 mux</span>
+<span class="kw">endmodule</span></pre>
+    </div>
+    <p>Both versions synthesize to functionally identical hardware — this is a great example of dataflow modeling (Chapter 14) genuinely outshining behavioral modeling for a simple, regular pattern like this one.</p>
+  </section>
+
+  <section class="chapter-section" id="mux-testbench" data-nav="MUX testbench">
+    <h2>4:1 MUX Testbench</h2>
+    <div class="codeblock">
+      <div class="code-head"><span>mux4to1_tb.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">mux4to1_tb</span>;
+    <span class="typ">reg</span> [3:0] <span class="id">in</span>;
+    <span class="typ">reg</span> [1:0] <span class="id">sel</span>;
+    <span class="typ">wire</span>      <span class="id">y</span>;
+
+    <span class="id">mux4to1_dataflow</span> <span class="id">uut</span> (.<span class="id">in</span>(<span class="id">in</span>), .<span class="id">sel</span>(<span class="id">sel</span>), .<span class="id">y</span>(<span class="id">y</span>));
+
+    <span class="kw">initial</span> <span class="kw">begin</span>
+        <span class="id">in</span> = 4'<span class="typ">b</span><span class="num">1010</span>;   <span class="cmt">// in[3]=1, in[2]=0, in[1]=1, in[0]=0</span>
+        <span class="id">sel</span> = 2'<span class="typ">b</span><span class="num">00</span>; #10;  <span class="cmt">// expect y = in[0] = 0</span>
+        <span class="id">sel</span> = 2'<span class="typ">b</span><span class="num">01</span>; #10;  <span class="cmt">// expect y = in[1] = 1</span>
+        <span class="id">sel</span> = 2'<span class="typ">b</span><span class="num">10</span>; #10;  <span class="cmt">// expect y = in[2] = 0</span>
+        <span class="id">sel</span> = 2'<span class="typ">b</span><span class="num">11</span>; #10;  <span class="cmt">// expect y = in[3] = 1</span>
+        <span class="kw">$finish</span>;
+    <span class="kw">end</span>
+
+    <span class="kw">initial</span> <span class="kw">$monitor</span>(<span class="str">"t=%0t sel=%b -> y=%b"</span>, <span class="kw">$time</span>, <span class="id">sel</span>, <span class="id">y</span>);
+<span class="kw">endmodule</span></pre>
+    </div>
+    <table>
+      <thead><tr><th>sel</th><th>Expected y (from in=4'b1010)</th></tr></thead>
+      <tbody>
+        <tr><td>00</td><td>0 (in[0])</td></tr>
+        <tr><td>01</td><td>1 (in[1])</td></tr>
+        <tr><td>10</td><td>0 (in[2])</td></tr>
+        <tr><td>11</td><td>1 (in[3])</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="chapter-section" id="demux" data-nav="1:4 DEMUX">
+    <h2>1:4 Demultiplexer</h2>
+    <div class="codeblock">
+      <div class="code-head"><span>demux1to4.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">demux1to4</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">in</span>,
+    <span class="kw">input</span>  <span class="typ">wire</span> [1:0] <span class="id">sel</span>,
+    <span class="kw">output</span> <span class="typ">reg</span>  [3:0] <span class="id">out</span>
+);
+    <span class="kw">always</span> @(*) <span class="kw">begin</span>
+        <span class="id">out</span> = 4'<span class="typ">b</span><span class="num">0000</span>;         <span class="cmt">// default: every output LOW</span>
+        <span class="kw">case</span> (<span class="id">sel</span>)
+            2'<span class="typ">b</span><span class="num">00</span>: <span class="id">out</span>[0] = <span class="id">in</span>;
+            2'<span class="typ">b</span><span class="num">01</span>: <span class="id">out</span>[1] = <span class="id">in</span>;
+            2'<span class="typ">b</span><span class="num">10</span>: <span class="id">out</span>[2] = <span class="id">in</span>;
+            2'<span class="typ">b</span><span class="num">11</span>: <span class="id">out</span>[3] = <span class="id">in</span>;
+        <span class="kw">endcase</span>
+    <span class="kw">end</span>
+<span class="kw">endmodule</span></pre>
+    </div>
+    <div class="callout warn">
+      <div class="callout-title">Why the default line matters here specifically</div>
+      Setting <code>out = 4'b0000;</code> <b>before</b> the case statement guarantees every unselected output line is cleanly driven LOW, not left dangling. Without it, only the selected bit of <code>out</code> would ever be assigned, forcing the tool to insert latches for the other three bits (Chapter 11's default-case warning, applied to partial bus assignment).
+    </div>
+    <div class="codeblock">
+      <div class="code-head"><span>demux1to4_tb.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">demux1to4_tb</span>;
+    <span class="typ">reg</span        <span class="id">in</span>;
+    <span class="typ">reg</span> [1:0] <span class="id">sel</span>;
+    <span class="typ">wire</span> [3:0] <span class="id">out</span>;
+
+    <span class="id">demux1to4</span> <span class="id">uut</span> (.<span class="id">in</span>(<span class="id">in</span>), .<span class="id">sel</span>(<span class="id">sel</span>), .<span class="id">out</span>(<span class="id">out</span>));
+
+    <span class="kw">initial</span> <span class="kw">begin</span>
+        <span class="id">in</span> = 1;
+        <span class="id">sel</span> = 2'<span class="typ">b</span><span class="num">00</span>; #10;   <span class="cmt">// expect out = 0001</span>
+        <span class="id">sel</span> = 2'<span class="typ">b</span><span class="num">01</span>; #10;   <span class="cmt">// expect out = 0010</span>
+        <span class="id">sel</span> = 2'<span class="typ">b</span><span class="num">10</span>; #10;   <span class="cmt">// expect out = 0100</span>
+        <span class="id">sel</span> = 2'<span class="typ">b</span><span class="num">11</span>; #10;   <span class="cmt">// expect out = 1000</span>
+        <span class="kw">$finish</span>;
+    <span class="kw">end</span>
+
+    <span class="kw">initial</span> <span class="kw">$monitor</span>(<span class="str">"t=%0t sel=%b -> out=%b"</span>, <span class="kw">$time</span>, <span class="id">sel</span>, <span class="id">out</span>);
+<span class="kw">endmodule</span></pre>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="common-mistakes" data-nav="Common mistakes">
+    <h2>Common Mistakes</h2>
+    <ul>
+      <li>Forgetting the default clear (<code>out = 0</code>) before a case that only assigns individual bits of a bus — leads to unintended latches.</li>
+      <li>Off-by-one mismatches between select-line width and the number of data lines (2 select lines only ever address 4 lines — 3 select lines are needed for 8).</li>
+      <li>Assuming dynamic bit-select indexing (<code>in[sel]</code>) works for indexing into unrelated separate signals — it only works on an actual vector/bus, not on several individually-declared wires.</li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="summary" data-nav="Summary & exercises">
+    <h2>Summary</h2>
+    <p>A 4:1 MUX can be written explicitly with a case statement, or, far more compactly, using Verilog's dynamic bit-selection (<code>in[sel]</code>) — both produce identical hardware. A DEMUX is the reverse pattern, and must explicitly default its unselected outputs to avoid unintended latches. Both circuits are easy and fast to fully verify with a small testbench sweeping every select value.</p>
+  </section>
+
+  <section class="chapter-section" id="interview-questions" data-nav="Interview questions">
+    <h2>Interview Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>Why does `assign y = in[sel];` work as a complete multiplexer?</summary><div class="answer">Verilog supports dynamic (variable) bit-selection, so `sel` can act as a runtime index into the `in` bus — this is functionally identical to explicitly selecting one of several inputs with a case statement, just far more compact.</div></details></li>
+      <li><details class="qa"><summary>Why must a DEMUX's unselected outputs be explicitly defaulted?</summary><div class="answer">Because within the case statement only one bit of the output bus is assigned per branch — without an explicit default clearing the whole bus first, the unassigned bits would need to "remember" their previous value, forcing the synthesis tool to infer unintended latches.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="viva-questions" data-nav="Viva questions">
+    <h2>Viva Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>How many select lines does an 8:1 MUX need?</summary><div class="answer">3 (2³ = 8).</div></details></li>
+      <li><details class="qa"><summary>What line in demux1to4 prevents unintended latches?</summary><div class="answer">out = 4'b0000; placed before the case statement.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="exercises" data-nav="Exercises">
+    <h2>Exercises</h2>
+    <p>1. Extend mux4to1 into an 8:1 MUX using both the case style and the dynamic bit-select style, and confirm they match via testbench. 2. Write demux1to8 (1-to-8 demultiplexer) with a proper default. 3. Combine a 4:1 MUX and a 1:4 DEMUX into a single "shared bus" testbench, sending a value through the MUX, then through the DEMUX, and verifying it arrives at the correct final output line.</p>
+  </section>
+
+  <div class="footer-nav">
+    <a href="chapter-16.html"><span class="lbl">← BACK</span>Half Adder & Full Adder</a>
+    <a href="chapter-18.html" class="next"><span class="lbl">NEXT</span>Encoder, Decoder & Priority Encoder</a>
+  </div>
+
+</article>
+</div>
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">↑</button>
+
+<script>window.CURRENT_CHAPTER_ID = "ch-17";</script>
+<script src="shared/nav.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => { const t = document.getElementById("reading-time"); const t2 = document.getElementById("reading-time-2"); if(t && t2){ const obs = new MutationObserver(()=>{ t2.textContent = t.textContent; }); obs.observe(t, {childList:true}); } });</script>
+</body>
+</html>
