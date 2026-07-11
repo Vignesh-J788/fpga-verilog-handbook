@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 18 · Encoder, Decoder & Priority Encoder — FPGA & Verilog Handbook</title>
+<link rel="stylesheet" href="shared/styles.css">
+</head>
+<body>
+<div class="board-grid"></div>
+
+<div class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Open chapter menu"><span></span><span></span><span></span></button>
+  <div class="topbar-title"><b>Chapter 18</b> · Encoder, Decoder & Priority Encoder</div>
+  <div class="topbar-right"><span id="reading-time" class="dim" style="font-family:var(--font-mono);font-size:12px;"></span></div>
+</div>
+<div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="logo">◈ FPGA & VERILOG HANDBOOK</div>
+    <div class="tag">From absolute zero to a working FPGA board</div>
+  </div>
+  <div class="sidebar-search"><input type="text" id="sidebar-search-input" placeholder="Search chapters..."></div>
+  <div class="sidebar-group" id="sidebar-list"></div>
+</nav>
+
+<div class="page-wrap">
+<article class="sheet">
+
+  <div class="eyebrow">Part 5 · Verilog Programs — Chapter 18</div>
+  <h1 class="h-title">Encoder, Decoder & Priority Encoder</h1>
+  <p class="h-sub">Full theory in Chapter 4. Here: a decoder with enable, a plain encoder (and exactly why it breaks with multiple active inputs), and a priority encoder that fixes that problem — written two different ways.</p>
+  <div class="meta-row"><span>📖 Beginner Level</span><span>🕐 <span id="reading-time-2">—</span></span><span>🧩 6 sections</span></div>
+
+  <section class="chapter-section" id="recap" data-nav="Quick recap">
+    <h2>Quick Recap (Full Theory in Chapter 4)</h2>
+    <p>A decoder activates exactly one of 2ⁿ outputs based on an n-bit code. An encoder does the reverse — reporting the binary code of whichever single input is active. A priority encoder is a smarter encoder that behaves sensibly even when multiple inputs are active at once.</p>
+  </section>
+
+  <section class="chapter-section" id="decoder" data-nav="2-to-4 Decoder">
+    <h2>2-to-4 Decoder (with Enable)</h2>
+    <div class="codeblock">
+      <div class="code-head"><span>decoder2to4.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">decoder2to4</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> [1:0] <span class="id">in</span>,
+    <span class="kw">input</span>  <span class="typ">wire</span>       <span class="id">en</span>,
+    <span class="kw">output</span> <span class="typ">reg</span>  [3:0] <span class="id">out</span>
+);
+    <span class="kw">always</span> @(*) <span class="kw">begin</span>
+        <span class="id">out</span> = 4'<span class="typ">b</span><span class="num">0000</span>;         <span class="cmt">// default: nothing selected</span>
+        <span class="kw">if</span> (<span class="id">en</span>) <span class="kw">begin</span>
+            <span class="kw">case</span> (<span class="id">in</span>)
+                2'<span class="typ">b</span><span class="num">00</span>: <span class="id">out</span>[0] = 1'<span class="typ">b</span>1;
+                2'<span class="typ">b</span><span class="num">01</span>: <span class="id">out</span>[1] = 1'<span class="typ">b</span>1;
+                2'<span class="typ">b</span><span class="num">10</span>: <span class="id">out</span>[2] = 1'<span class="typ">b</span>1;
+                2'<span class="typ">b</span><span class="num">11</span>: <span class="id">out</span>[3] = 1'<span class="typ">b</span>1;
+            <span class="kw">endcase</span>
+        <span class="kw">end</span>
+    <span class="kw">end</span>
+<span class="kw">endmodule</span></pre>
+    </div>
+    <p>The <code>en</code> (enable) input is standard practice on real decoders — when LOW, every output stays 0 regardless of <code>in</code>, letting several decoders share the same address lines while only one is "switched on" at a time (exactly how a memory chip selects which device responds to an address).</p>
+  </section>
+
+  <section class="chapter-section" id="encoder" data-nav="Plain Encoder (and why it breaks)">
+    <h2>Plain 4-to-2 Encoder — And Exactly Why It Breaks</h2>
+    <div class="codeblock">
+      <div class="code-head"><span>encoder4to2.v — assumes exactly one input is ever active</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">encoder4to2</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> [3:0] <span class="id">in</span>,
+    <span class="kw">output</span> <span class="typ">reg</span>  [1:0] <span class="id">out</span>
+);
+    <span class="kw">always</span> @(*) <span class="kw">begin</span>
+        <span class="kw">case</span> (<span class="id">in</span>)
+            4'<span class="typ">b</span><span class="num">0001</span>: <span class="id">out</span> = 2'<span class="typ">b</span><span class="num">00</span>;
+            4'<span class="typ">b</span><span class="num">0010</span>: <span class="id">out</span> = 2'<span class="typ">b</span><span class="num">01</span>;
+            4'<span class="typ">b</span><span class="num">0100</span>: <span class="id">out</span> = 2'<span class="typ">b</span><span class="num">10</span>;
+            4'<span class="typ">b</span><span class="num">1000</span>: <span class="id">out</span> = 2'<span class="typ">b</span><span class="num">11</span>;
+            <span class="kw">default</span>:    <span class="id">out</span> = 2'<span class="typ">b</span><span class="num">00</span>;  <span class="cmt">// what SHOULD this mean? see below</span>
+        <span class="kw">endcase</span>
+    <span class="kw">end</span>
+<span class="kw">endmodule</span></pre>
+    </div>
+    <div class="callout warn">
+      <div class="callout-title">The problem, laid bare</div>
+      This encoder only has one line per <i>exact</i> 4-bit pattern with a single 1. But real-world inputs are messy — what if <code>in = 4'b0110</code> (two bits active) or <code>in = 4'b0000</code> (none active)? Both fall into the same catch-all <code>default</code>, producing the exact same output (<code>00</code>) as if only <code>in[0]</code> were active — a completely wrong, silently misleading result. A plain encoder is only safe when you can <i>guarantee</i> exactly one input is ever active — which is rarely true in real systems.
+    </div>
+  </section>
+
+  <section class="chapter-section" id="priority-encoder" data-nav="Priority Encoder (two ways)">
+    <h2>The Fix: Priority Encoder</h2>
+    <p>A priority encoder resolves the ambiguity by explicit rule: <b>if multiple inputs are active, the highest-priority one (conventionally, the highest-indexed bit) wins</b>, and it adds a <code>valid</code> output that's only HIGH when at least one input was actually active — directly solving the "was it really input 0, or was nothing active at all?" problem above.</p>
+
+    <h3>Version 1: if/else Priority Chain (Chapter 11)</h3>
+    <div class="codeblock">
+      <div class="code-head"><span>priority_encoder4to2.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">priority_encoder4to2</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> [3:0] <span class="id">in</span>,
+    <span class="kw">output</span> <span class="typ">reg</span>  [1:0] <span class="id">out</span>,
+    <span class="kw">output</span> <span class="typ">reg</span>       <span class="id">valid</span>
+);
+    <span class="kw">always</span> @(*) <span class="kw">begin</span>
+        <span class="id">valid</span> = 1'<span class="typ">b</span>1;
+        <span class="kw">if</span> (<span class="id">in</span>[3])      <span class="id">out</span> = 2'<span class="typ">b</span><span class="num">11</span>;   <span class="cmt">// in[3] checked FIRST: highest priority</span>
+        <span class="kw">else</span> <span class="kw">if</span> (<span class="id">in</span>[2]) <span class="id">out</span> = 2'<span class="typ">b</span><span class="num">10</span>;
+        <span class="kw">else</span> <span class="kw">if</span> (<span class="id">in</span>[1]) <span class="id">out</span> = 2'<span class="typ">b</span><span class="num">01</span>;
+        <span class="kw">else</span> <span class="kw">if</span> (<span class="id">in</span>[0]) <span class="id">out</span> = 2'<span class="typ">b</span><span class="num">00</span>;
+        <span class="kw">else</span> <span class="kw">begin</span>
+            <span class="id">out</span>   = 2'<span class="typ">b</span><span class="num">00</span>;
+            <span class="id">valid</span> = 1'<span class="typ">b</span>0;      <span class="cmt">// nothing was active at all</span>
+        <span class="kw">end</span>
+    <span class="kw">end</span>
+<span class="kw">endmodule</span></pre>
+    </div>
+
+    <h3>Version 2: casez With Don't-Care Wildcards (Chapter 3 + Chapter 11)</h3>
+    <div class="codeblock">
+      <div class="code-head"><span>priority_encoder_casez.v — same behavior, wildcard style</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">priority_encoder_casez</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> [3:0] <span class="id">in</span>,
+    <span class="kw">output</span> <span class="typ">reg</span>  [1:0] <span class="id">out</span>
+);
+    <span class="kw">always</span> @(*) <span class="kw">begin</span>
+        <span class="kw">casez</span> (<span class="id">in</span>)              <span class="cmt">// ? = don't-care bit, matches 0 or 1</span>
+            4'<span class="typ">b</span>1???: <span class="id">out</span> = 2'<span class="typ">b</span><span class="num">11</span>;   <span class="cmt">// in[3]=1, everything else irrelevant</span>
+            4'<span class="typ">b</span>01??: <span class="id">out</span> = 2'<span class="typ">b</span><span class="num">10</span>;
+            4'<span class="typ">b</span>001?: <span class="id">out</span> = 2'<span class="typ">b</span><span class="num">01</span>;
+            4'<span class="typ">b</span>0001: <span class="id">out</span> = 2'<span class="typ">b</span><span class="num">00</span>;
+            <span class="kw">default</span>: <span class="id">out</span> = 2'<span class="typ">b</span><span class="num">00</span>;
+        <span class="kw">endcase</span>
+    <span class="kw">end</span>
+<span class="kw">endmodule</span></pre>
+    </div>
+    <p>Both versions are functionally identical — <code>casez</code> simply expresses the exact same priority logic as a compact pattern list instead of a chain of conditions, using the don't-care <code>?</code> wildcard exactly like a Karnaugh map's don't-care cells from Chapter 3.</p>
+  </section>
+
+  <section class="chapter-section" id="testbench" data-nav="Priority encoder testbench">
+    <h2>Testbench — Proving the Priority Behavior</h2>
+    <div class="codeblock">
+      <div class="code-head"><span>priority_encoder_tb.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">priority_encoder_tb</span>;
+    <span class="typ">reg</span> [3:0] <span class="id">in</span>;
+    <span class="typ">wire</span> [1:0] <span class="id">out</span>;
+    <span class="typ">wire</span>       <span class="id">valid</span>;
+
+    <span class="id">priority_encoder4to2</span> <span class="id">uut</span> (.<span class="id">in</span>(<span class="id">in</span>), .<span class="id">out</span>(<span class="id">out</span>), .<span class="id">valid</span>(<span class="id">valid</span>));
+
+    <span class="kw">initial</span> <span class="kw">begin</span>
+        <span class="id">in</span> = 4'<span class="typ">b</span><span class="num">0000</span>; #10;   <span class="cmt">// expect valid=0 (nothing active)</span>
+        <span class="id">in</span> = 4'<span class="typ">b</span><span class="num">0001</span>; #10;   <span class="cmt">// expect out=00, valid=1</span>
+        <span class="id">in</span> = 4'<span class="typ">b</span><span class="num">0110</span>; #10;   <span class="cmt">// TWO bits active (1 and 2) -> expect out=10 (bit 2 wins)</span>
+        <span class="id">in</span> = 4'<span class="typ">b</span><span class="num">1111</span>; #10;   <span class="cmt">// ALL bits active -> expect out=11 (bit 3 wins, top priority)</span>
+        <span class="kw">$finish</span>;
+    <span class="kw">end</span>
+
+    <span class="kw">initial</span> <span class="kw">$monitor</span>(<span class="str">"t=%0t in=%b -> out=%b valid=%b"</span>, <span class="kw">$time</span>, <span class="id">in</span>, <span class="id">out</span>, <span class="id">valid</span>);
+<span class="kw">endmodule</span></pre>
+    </div>
+    <table>
+      <thead><tr><th>in</th><th>Active bits</th><th>Expected out</th><th>Expected valid</th></tr></thead>
+      <tbody>
+        <tr><td>0000</td><td>none</td><td>00</td><td>0</td></tr>
+        <tr><td>0001</td><td>bit 0</td><td>00</td><td>1</td></tr>
+        <tr><td>0110</td><td>bits 1, 2</td><td>10 (bit 2 wins)</td><td>1</td></tr>
+        <tr><td>1111</td><td>all 4 bits</td><td>11 (bit 3 wins)</td><td>1</td></tr>
+      </tbody>
+    </table>
+    <p>This is exactly the behavior the plain encoder couldn't provide — correctly resolving multiple simultaneously-active inputs, and clearly flagging the "nothing active" case instead of silently reporting a misleading result.</p>
+  </section>
+
+  <section class="chapter-section" id="common-mistakes" data-nav="Common mistakes">
+    <h2>Common Mistakes</h2>
+    <ul>
+      <li>Using a plain encoder when multiple inputs can genuinely be active simultaneously — always confirm this assumption before choosing between plain and priority encoder.</li>
+      <li>Forgetting the <code>valid</code> output — without it, "no input active" and "input 0 active" are indistinguishable to whatever circuit reads the encoder's output.</li>
+      <li>Getting the priority direction backwards — always double check whether your specification wants the highest-indexed or lowest-indexed input to win.</li>
+      <li>Missing bits in a <code>casez</code> wildcard pattern (e.g., writing <code>01?</code> for a 4-bit input instead of <code>01??</code>) — pattern widths must always match the full input width.</li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="summary" data-nav="Summary & exercises">
+    <h2>Summary</h2>
+    <p>A decoder activates exactly one output line matching an input code (often gated with an enable). A plain encoder assumes exactly one input is active and silently gives wrong answers otherwise. A priority encoder fixes this by explicitly defining which input wins when several are active, and adds a <code>valid</code> flag distinguishing "input 0 active" from "nothing active" — writable either as an if/else priority chain or, equivalently, using <code>casez</code> wildcards.</p>
+  </section>
+
+  <section class="chapter-section" id="interview-questions" data-nav="Interview questions">
+    <h2>Interview Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>Why does a plain encoder fail when multiple inputs are active?</summary><div class="answer">Because its case statement only has entries for the exact single-bit-active patterns; any other combination (multiple bits, or none) falls into the default case, producing an output indistinguishable from a legitimate single-input-active case — silently wrong.</div></details></li>
+      <li><details class="qa"><summary>What is the purpose of the valid output in a priority encoder?</summary><div class="answer">It distinguishes the case where input 0 is genuinely active from the case where no input is active at all — both of which would otherwise produce the same all-zero output code.</div></details></li>
+      <li><details class="qa"><summary>How does casez differ from a plain case statement here?</summary><div class="answer">casez allows `?` wildcard bits in its patterns, matching either 0 or 1 at that position, letting a priority encoder's logic be expressed as compact patterns instead of an explicit if/else chain — both produce identical hardware.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="viva-questions" data-nav="Viva questions">
+    <h2>Viva Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>In priority_encoder4to2, which input bit has the highest priority?</summary><div class="answer">in[3] — it's checked first in the if/else chain.</div></details></li>
+      <li><details class="qa"><summary>What does the ? symbol mean inside a casez pattern?</summary><div class="answer">A don't-care wildcard — it matches either 0 or 1 at that bit position.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="exercises" data-nav="Exercises">
+    <h2>Exercises</h2>
+    <p>1. Extend the priority encoder to 8 inputs (3-bit output) using both the if/else and casez styles. 2. Modify decoder2to4 into a decoder3to8. 3. Write a self-checking testbench for priority_encoder4to2 that automatically flags a mismatch if the encoded output doesn't correspond to the highest set bit in the input.</p>
+  </section>
+
+  <div class="footer-nav">
+    <a href="chapter-17.html"><span class="lbl">← BACK</span>Multiplexer & Demultiplexer</a>
+    <a href="chapter-19.html" class="next"><span class="lbl">NEXT</span>Comparator & Seven-Segment Decoder</a>
+  </div>
+
+</article>
+</div>
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">↑</button>
+
+<script>window.CURRENT_CHAPTER_ID = "ch-18";</script>
+<script src="shared/nav.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => { const t = document.getElementById("reading-time"); const t2 = document.getElementById("reading-time-2"); if(t && t2){ const obs = new MutationObserver(()=>{ t2.textContent = t.textContent; }); obs.observe(t, {childList:true}); } });</script>
+</body>
+</html>
