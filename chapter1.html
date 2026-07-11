@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 1 · Electricity, Voltage, Current & Number Systems — FPGA & Verilog Handbook</title>
+<link rel="stylesheet" href="shared/styles.css">
+</head>
+<body>
+<div class="board-grid"></div>
+
+<div class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Open chapter menu"><span></span><span></span><span></span></button>
+  <div class="topbar-title"><b>Chapter 01</b> · Electricity, Voltage, Current & Number Systems</div>
+  <div class="topbar-right"><span id="reading-time" class="dim" style="font-family:var(--font-mono);font-size:12px;"></span></div>
+</div>
+<div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="logo">◈ FPGA & VERILOG HANDBOOK</div>
+    <div class="tag">From absolute zero to a working FPGA board</div>
+  </div>
+  <div class="sidebar-search"><input type="text" id="sidebar-search-input" placeholder="Search chapters..."></div>
+  <div class="sidebar-group" id="sidebar-list"></div>
+</nav>
+
+<div class="page-wrap">
+<article class="sheet">
+
+  <div class="eyebrow">Part 1 · Digital Electronics Foundations — Chapter 01</div>
+  <h1 class="h-title">Electricity, Voltage, Current & Number Systems</h1>
+  <p class="h-sub">Before you can understand a single line of Verilog, you need to understand what is actually flowing through the wires, and how computers count. This chapter builds that from absolute zero — no prior knowledge assumed.</p>
+  <div class="meta-row">
+    <span>📖 Beginner Level</span>
+    <span>🕐 <span id="reading-time-2">—</span></span>
+    <span>🧩 8 sections</span>
+  </div>
+
+  <section class="chapter-section" id="intro" data-nav="Why this chapter exists">
+    <h2>Why This Chapter Exists</h2>
+    <p>Imagine trying to learn to cook without knowing what heat is, or what an ingredient is. You could memorize recipes, but the moment something went wrong, you'd be lost. That is exactly what happens to most people who jump straight into Verilog code without understanding what's underneath it.</p>
+    <p>An FPGA is, at its heart, a chip made of millions of tiny switches. Those switches are controlled by electricity. And the way we describe the state of those switches — the language computers use to think — is <b>binary numbers</b>. So before we write a single <code>module</code> in Verilog, we need three things straight in our head:</p>
+    <ol>
+      <li>What electricity, voltage, and current actually <i>are</i> (not just formulas — the real physical idea).</li>
+      <li>The difference between <b>analog</b> (smooth, continuous) and <b>digital</b> (stepped, on/off) signals.</li>
+      <li>How to count in <b>binary</b> and <b>hexadecimal</b>, because that's the only "language" a digital circuit understands.</li>
+    </ol>
+    <div class="callout">
+      <div class="callout-title">Promise</div>
+      Nothing in this chapter is skipped or assumed. If a term is used, it is explained the moment it appears.
+    </div>
+  </section>
+
+  <section class="chapter-section" id="electricity" data-nav="What is electricity?">
+    <h2>What Is Electricity, Really?</h2>
+    <p>Everything around you — this screen, the air, your own body — is made of tiny building blocks called <b>atoms</b>. Every atom has a nucleus in the center, and tiny particles called <b>electrons</b> zipping around it, kind of like planets circling the sun.</p>
+    <p>Some materials — like copper, the metal inside almost every wire — have electrons that are loosely held. They can be pushed from one atom to the neighboring atom fairly easily. <b>Electricity is simply the organized movement of these electrons through a material.</b> That's it. That's the whole secret. Electricity isn't some magical invisible force — it's just electrons hopping from atom to atom in one general direction, like a very, very long line of people passing buckets of water hand-to-hand at a fire.</p>
+    <div class="analogy-box">
+      <div class="tag">Analogy · The Bucket Line</div>
+      <p style="margin-bottom:0">Picture a long line of people standing shoulder to shoulder, each holding a bucket. If person 1 dumps water into person 2's bucket, and person 2 dumps into person 3's, and so on — water appears to "flow" down the line almost instantly, even though no single person moved from their spot. Electrons in a wire behave the same way. They don't zoom down the wire like a bullet — they nudge their neighbor, who nudges the next one, and the "push" travels down the line at incredible speed.</p>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="voltage-current" data-nav="Voltage, current & resistance">
+    <h2>Voltage, Current & Resistance — The Water Pipe Analogy</h2>
+    <p>These three words confuse almost every beginner because they sound abstract. So we're going to make them physical using something you already understand: water flowing through a pipe.</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 640 260" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="waterGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#22d3ee"/>
+          </linearGradient>
+        </defs>
+        <!-- tank 1 (high) -->
+        <rect x="30" y="30" width="90" height="140" rx="6" fill="#141b26" stroke="#2a3a4d" stroke-width="2"/>
+        <rect x="36" y="60" width="78" height="104" fill="url(#waterGrad)" opacity="0.55"/>
+        <text x="75" y="20" text-anchor="middle" fill="#93a4b8" font-size="12" font-family="ui-monospace,monospace">HIGH TANK (+V)</text>
+        <!-- pipe with narrow section (resistance) -->
+        <path d="M120,150 L260,150 L290,165 L340,165 L370,150 L520,150" fill="none" stroke="#2a3a4d" stroke-width="16" stroke-linecap="round"/>
+        <path d="M120,150 L260,150 L290,165 L340,165 L370,150 L520,150" fill="none" stroke="url(#waterGrad)" stroke-width="8" stroke-linecap="round" opacity="0.85">
+          <animate attributeName="stroke-dashoffset" from="0" to="-40" dur="1s" repeatCount="indefinite"/>
+          <animate attributeName="stroke-dasharray" values="10 6" dur="1s" repeatCount="indefinite"/>
+        </path>
+        <text x="315" y="200" text-anchor="middle" fill="#f5a524" font-size="11.5" font-family="ui-monospace,monospace">narrow section = RESISTANCE</text>
+        <!-- tank 2 (low) -->
+        <rect x="520" y="70" width="90" height="140" rx="6" fill="#141b26" stroke="#2a3a4d" stroke-width="2"/>
+        <rect x="526" y="160" width="78" height="74" fill="url(#waterGrad)" opacity="0.4"/>
+        <text x="565" y="60" text-anchor="middle" fill="#93a4b8" font-size="12" font-family="ui-monospace,monospace">LOW TANK (0V / GND)</text>
+      </svg>
+      <figcaption>Water pressure = Voltage · Flow rate = Current · Pipe narrowing = Resistance</figcaption>
+    </figure>
+
+    <h3>Voltage — The "Pressure" Pushing Electrons</h3>
+    <p><b>Voltage</b> is the difference in electrical "pressure" between two points, measured in <b>Volts (V)</b>. In our water analogy, it's the height difference between the two tanks. A taller tank pushes water through the pipe harder. In a circuit, a bigger voltage difference pushes electrons through a wire harder. A battery that says "5V" or "3.3V" is telling you exactly how much "electrical height difference" it can create between its two terminals.</p>
+
+    <h3>Current — The Actual Flow</h3>
+    <p><b>Current</b> is how much "stuff" is actually flowing — measured in <b>Amperes (A)</b>, usually just called "amps." In the water analogy, this is the flow rate — how much water passes a point every second. In electricity, it's how many electrons pass a point every second. More voltage (pressure) generally pushes more current (flow) — unless something is blocking the path.</p>
+
+    <h3>Resistance — What Fights The Flow</h3>
+    <p><b>Resistance</b>, measured in <b>Ohms (Ω)</b>, is anything that makes it harder for electrons to flow — like a narrow section in the pipe. A resistor is a component whose entire job is to add a controlled amount of "narrowness" to the path, so we can control exactly how much current flows.</p>
+
+    <div class="callout good">
+      <div class="callout-title">The One Equation You Actually Need</div>
+      <p style="margin-bottom:0"><b>Voltage = Current × Resistance</b>, written as <code>V = I × R</code>. This is called <b>Ohm's Law</b>. If you know any two of these three values, you can always find the third. This single equation explains almost every basic circuit behavior you'll ever see.</p>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="analog-vs-digital" data-nav="Analog vs Digital">
+    <h2>Analog vs Digital — Two Completely Different Worlds</h2>
+    <p>Now here's the idea that everything else in this entire handbook depends on. Electrical signals can behave in two very different ways.</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 640 220" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <line x1="20" y1="60" x2="620" y2="60" stroke="#1e2836" stroke-width="1"/>
+        <text x="20" y="42" fill="#93a4b8" font-size="12" font-family="ui-monospace,monospace">ANALOG — smooth, continuous, infinite values</text>
+        <path d="M20,60 C 70,10 120,110 170,60 C 220,10 270,110 320,60 C 370,10 420,110 470,60 C 520,10 570,110 620,60" fill="none" stroke="#22d3ee" stroke-width="2.5"/>
+
+        <line x1="20" y1="180" x2="620" y2="180" stroke="#1e2836" stroke-width="1"/>
+        <text x="20" y="160" fill="#93a4b8" font-size="12" font-family="ui-monospace,monospace">DIGITAL — only two levels, HIGH (1) or LOW (0)</text>
+        <path d="M20,180 L20,150 L100,150 L100,210 L180,210 L180,150 L260,150 L260,210 L340,210 L340,150 L420,150 L420,210 L500,210 L500,150 L620,150"
+              fill="none" stroke="#3b82f6" stroke-width="2.5"/>
+      </svg>
+      <figcaption>Analog = infinite smooth values (like a dimmer switch) · Digital = only ever two states (like a normal light switch)</figcaption>
+    </figure>
+
+    <div class="grid-2">
+      <div class="analogy-box">
+        <div class="tag">Analog</div>
+        <p style="margin-bottom:0">Think of a <b>volume knob</b> on an old radio. You can set it to any position — quiet, a bit louder, halfway, almost max — with infinite tiny steps in between. That's analog: it can be <i>any</i> value in a range.</p>
+      </div>
+      <div class="analogy-box">
+        <div class="tag">Digital</div>
+        <p style="margin-bottom:0">Now think of a normal <b>wall light switch</b>. It is either fully <b>ON</b> or fully <b>OFF</b>. There is no "halfway" position you're supposed to use. That's digital: only two allowed states.</p>
+      </div>
+    </div>
+
+    <p>An FPGA, a microcontroller, your laptop's processor — all of them are <b>digital</b> devices. They only ever think in two states, which we label <b>1</b> and <b>0</b>, or <b>HIGH</b> and <b>LOW</b>, or <b>TRUE</b> and <b>FALSE</b>. Every photo, song, and video on your phone is, underneath, an enormous sequence of just these two symbols. Which brings us to the next question: if a computer only knows two digits, how does it count past 1?</p>
+  </section>
+
+  <section class="chapter-section" id="binary-numbers" data-nav="Binary numbers">
+    <h2>The Binary Number System</h2>
+    <p>You already know the <b>decimal</b> system (base-10) — it uses 10 symbols: 0,1,2,3,4,5,6,7,8,9. Why 10? Most historians think it's simply because humans have 10 fingers. Binary is base-2. It only has <b>2</b> symbols: <b>0</b> and <b>1</b>. That's it. No 2, no 3, nothing else exists in binary.</p>
+    <p>So how does binary represent big numbers with only two digits? The exact same trick decimal uses: <b>place value</b>. In decimal, the number present at each position is worth 10× more than the position to its right (1s, 10s, 100s, 1000s...). In binary, each position is worth <b>2×</b> more than the position to its right.</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 640 170" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <g font-family="ui-monospace,monospace" font-size="13" text-anchor="middle">
+          <text x="70"  y="30" fill="#93a4b8">128</text>
+          <text x="160" y="30" fill="#93a4b8">64</text>
+          <text x="250" y="30" fill="#93a4b8">32</text>
+          <text x="340" y="30" fill="#93a4b8">16</text>
+          <text x="430" y="30" fill="#93a4b8">8</text>
+          <text x="500" y="30" fill="#93a4b8">4</text>
+          <text x="560" y="30" fill="#93a4b8">2</text>
+          <text x="610" y="30" fill="#93a4b8">1</text>
+        </g>
+        <g font-family="ui-monospace,monospace" font-size="26" font-weight="bold" text-anchor="middle" fill="#dbe6f0">
+          <rect x="45" y="55" width="50" height="55" rx="6" fill="#141b26" stroke="#3b82f6" stroke-width="2"/><text x="70" y="92">0</text>
+          <rect x="135" y="55" width="50" height="55" rx="6" fill="#141b26" stroke="#1e2836" stroke-width="2"/><text x="160" y="92">0</text>
+          <rect x="225" y="55" width="50" height="55" rx="6" fill="#141b26" stroke="#3b82f6" stroke-width="2"/><text x="250" y="92">1</text>
+          <rect x="315" y="55" width="50" height="55" rx="6" fill="#141b26" stroke="#1e2836" stroke-width="2"/><text x="340" y="92">0</text>
+          <rect x="405" y="55" width="50" height="55" rx="6" fill="#141b26" stroke="#3b82f6" stroke-width="2"/><text x="430" y="92">1</text>
+          <rect x="475" y="55" width="50" height="55" rx="6" fill="#141b26" stroke="#1e2836" stroke-width="2"/><text x="500" y="92">0</text>
+          <rect x="535" y="55" width="50" height="55" rx="6" fill="#141b26" stroke="#3b82f6" stroke-width="2"/><text x="560" y="92">1</text>
+          <rect x="585" y="55" width="50" height="55" rx="6" fill="#141b26" stroke="#1e2836" stroke-width="2"/><text x="610" y="92">0</text>
+        </g>
+        <text x="320" y="145" text-anchor="middle" fill="#22d3ee" font-family="ui-monospace,monospace" font-size="13">00101010 = 32 + 8 + 2 = 42</text>
+      </svg>
+      <figcaption>Only the positions with a "1" get added up. Every other position contributes nothing.</figcaption>
+    </figure>
+
+    <p>Look at the diagram above. Each box is one <b>bit</b> (short for "binary digit"). Above each box is that position's <i>value</i>, which always doubles as you move left: 1, 2, 4, 8, 16, 32, 64, 128... To find the decimal value of a binary number, you simply add up the position-values wherever there's a <code>1</code>, and ignore positions with a <code>0</code>.</p>
+    <div class="callout">
+      <div class="callout-title">Why Only 0 and 1?</div>
+      Because a digital circuit represents numbers using voltage, and it's far more reliable to build a circuit that only needs to tell the difference between "voltage present" and "no voltage" than one that has to precisely detect ten different pressure levels. Two states are robust against noise. Ten states are not. This is the real engineering reason binary won.
+    </div>
+  </section>
+
+  <section class="chapter-section" id="decimal-binary-convert" data-nav="Converting decimal ↔ binary">
+    <h2>Converting Between Decimal and Binary</h2>
+    <h3>Decimal → Binary (the "divide by 2" method)</h3>
+    <p>Keep dividing the number by 2, writing down the remainder (0 or 1) each time, until you reach 0. Then read the remainders from <b>bottom to top</b>.</p>
+    <table>
+      <thead><tr><th>Step</th><th>Division</th><th>Quotient</th><th>Remainder</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>42 ÷ 2</td><td>21</td><td>0</td></tr>
+        <tr><td>2</td><td>21 ÷ 2</td><td>10</td><td>1</td></tr>
+        <tr><td>3</td><td>10 ÷ 2</td><td>5</td><td>0</td></tr>
+        <tr><td>4</td><td>5 ÷ 2</td><td>2</td><td>1</td></tr>
+        <tr><td>5</td><td>2 ÷ 2</td><td>1</td><td>0</td></tr>
+        <tr><td>6</td><td>1 ÷ 2</td><td>0</td><td>1</td></tr>
+      </tbody>
+    </table>
+    <p>Reading the remainders bottom-to-top: <b>101010</b>. So decimal <code>42</code> = binary <code>101010</code> — matching the diagram above.</p>
+
+    <h3>Binary → Decimal (the "place value" method)</h3>
+    <p>Multiply each bit by its place value (1,2,4,8,16...) and add up only where the bit is 1. We already did this above: <code>00101010</code> → 32 + 8 + 2 = <b>42</b>.</p>
+
+    <div class="analogy-box">
+      <div class="tag">Practice it yourself</div>
+      <p style="margin-bottom:0">Try converting decimal <b>13</b> to binary before reading on. (Answer: 13 = 8 + 4 + 1 → <code>1101</code>)</p>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="hexadecimal" data-nav="Hexadecimal">
+    <h2>Hexadecimal — Binary's Shorthand</h2>
+    <p>Binary numbers get very long, very fast. An 8-bit number like <code>11010110</code> is already hard to read at a glance — imagine a 32-bit or 64-bit number! Engineers needed a shorter way to <i>write</i> binary without losing any information, so they invented <b>hexadecimal</b> (base-16).</p>
+    <p>Hex uses <b>16</b> symbols: 0-9, and then <b>A, B, C, D, E, F</b> for the values 10 through 15 (since we ran out of digits). The magic trick is that exactly <b>4 binary bits</b> map perfectly onto exactly <b>1 hex digit</b> — no remainder, no messiness — because 2⁴ = 16.</p>
+
+    <table>
+      <thead><tr><th>Binary (4-bit)</th><th>Decimal</th><th>Hex</th></tr></thead>
+      <tbody>
+        <tr><td>0000</td><td>0</td><td>0</td></tr>
+        <tr><td>0001</td><td>1</td><td>1</td></tr>
+        <tr><td>0010</td><td>2</td><td>2</td></tr>
+        <tr><td>0011</td><td>3</td><td>3</td></tr>
+        <tr><td>0100</td><td>4</td><td>4</td></tr>
+        <tr><td>0101</td><td>5</td><td>5</td></tr>
+        <tr><td>0110</td><td>6</td><td>6</td></tr>
+        <tr><td>0111</td><td>7</td><td>7</td></tr>
+        <tr><td>1000</td><td>8</td><td>8</td></tr>
+        <tr><td>1001</td><td>9</td><td>9</td></tr>
+        <tr><td>1010</td><td>10</td><td>A</td></tr>
+        <tr><td>1011</td><td>11</td><td>B</td></tr>
+        <tr><td>1100</td><td>12</td><td>C</td></tr>
+        <tr><td>1101</td><td>13</td><td>D</td></tr>
+        <tr><td>1110</td><td>14</td><td>E</td></tr>
+        <tr><td>1111</td><td>15</td><td>F</td></tr>
+      </tbody>
+    </table>
+
+    <p>So to convert <code>11010110</code> to hex: split it into groups of 4 from the right → <code>1101</code> and <code>0110</code> → which are <code>D</code> and <code>6</code> from the table → so the hex value is <b>D6</b>. Much shorter, and you can always expand it back to the exact same binary any time you need to.</p>
+    <div class="callout warn">
+      <div class="callout-title">Where you'll actually see this</div>
+      In Verilog and Vivado, you will constantly write numbers like <code>8'hD6</code> (an 8-bit number in hex, value D6) or <code>4'b1010</code> (a 4-bit number in binary). You'll also see memory addresses and register values shown in hex in every debugging report. This isn't optional trivia — it's the everyday vocabulary of digital design.
+    </div>
+  </section>
+
+  <section class="chapter-section" id="logic-levels" data-nav="Logic levels (HIGH/LOW)">
+    <h2>Logic Levels — How Voltage Becomes a 1 or a 0</h2>
+    <p>We now know digital circuits only understand 1s and 0s. But physically, all a wire can carry is <i>voltage</i>. So how does a circuit decide "this voltage means 1" versus "this voltage means 0"? This is defined by <b>logic levels</b> — voltage ranges, agreed on in advance, that get interpreted as HIGH or LOW.</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 500 260" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <g font-family="ui-monospace,monospace" font-size="12">
+          <rect x="180" y="20"  width="80" height="55" fill="rgba(59,130,246,.18)" stroke="#3b82f6"/>
+          <text x="330" y="52" fill="#3b82f6">HIGH (logical 1) — e.g. 2.4V – 3.3V</text>
+
+          <rect x="180" y="75"  width="80" height="35" fill="rgba(245,165,36,.15)" stroke="#f5a524" stroke-dasharray="3 3"/>
+          <text x="330" y="97" fill="#f5a524">Undefined / forbidden zone (noise margin)</text>
+
+          <rect x="180" y="110" width="80" height="55" fill="rgba(52,211,153,.15)" stroke="#34d399"/>
+          <text x="330" y="142" fill="#34d399">LOW (logical 0) — e.g. 0V – 0.8V</text>
+
+          <text x="220" y="14" text-anchor="middle" fill="#93a4b8">3.3V</text>
+          <text x="220" y="178" text-anchor="middle" fill="#93a4b8">0V</text>
+        </g>
+        <line x1="180" y1="185" x2="260" y2="185" stroke="#1e2836"/>
+        <text x="80" y="230" fill="#5b6b80" font-size="11" font-family="ui-monospace,monospace">Any voltage landing in the "forbidden zone" is unreliable and should never happen in a working circuit.</text>
+      </svg>
+      <figcaption>Real chips define exact thresholds — this is a simplified 3.3V logic example</figcaption>
+    </figure>
+
+    <p>Notice there's a gap in the middle — a "forbidden zone." This exists on purpose. If HIGH and LOW ranges touched each other with no gap, tiny electrical noise (interference from nearby wires, small voltage drops, etc.) could accidentally flip a 1 into a 0 or vice versa. That safety gap is called the <b>noise margin</b>, and it's one of the reasons digital circuits are so much more reliable than analog ones.</p>
+    <p>Different chip families use different voltage levels — some use 5V logic, most modern FPGAs and boards (like the ones you'll use with Vivado) use 3.3V, 1.8V, or even lower for internal logic. The exact numbers change; the <i>concept</i> — a HIGH band, a LOW band, and a forbidden zone between them — never does.</p>
+  </section>
+
+  <section class="chapter-section" id="summary" data-nav="Summary & key points">
+    <h2>Summary</h2>
+    <p>Electricity is electrons being nudged through a material. Voltage is the pressure pushing them, current is how much is flowing, and resistance is whatever fights that flow — tied together by <code>V = I × R</code>. Signals can be analog (infinite smooth values) or digital (only two allowed states). Digital circuits count using binary (base-2), which engineers shorten using hexadecimal (base-16) because 4 bits map exactly onto 1 hex digit. Finally, a digital circuit turns a real voltage into a logical 1 or 0 using defined logic levels, with a protective "forbidden zone" (noise margin) in between.</p>
+
+    <h3>Key Points</h3>
+    <ul>
+      <li>Voltage = pressure, Current = flow, Resistance = opposition to flow.</li>
+      <li><code>V = I × R</code> (Ohm's Law) connects all three.</li>
+      <li>Analog = continuous infinite values. Digital = only 2 states (HIGH/LOW, 1/0).</li>
+      <li>Binary place values double each step left: 1, 2, 4, 8, 16, 32, 64, 128...</li>
+      <li>4 binary bits = exactly 1 hex digit (0-9, A-F).</li>
+      <li>Logic levels convert real voltage into a logical 1 or 0, with a noise margin gap in between.</li>
+    </ul>
+
+    <div class="mem-trick">
+      <b>Memory Trick:</b> "<b>V</b>ery <b>I</b>mportant <b>R</b>ule" → V = I × R. And for binary place values, just remember you're "doubling" every step: 1‑2‑4‑8‑16‑32‑64‑128, the same way folding a paper in half keeps doubling its thickness.
+    </div>
+  </section>
+
+  <section class="chapter-section" id="practice-questions" data-nav="Practice questions">
+    <h2>Practice Questions</h2>
+    <ol>
+      <li>Convert decimal 25 to binary.</li>
+      <li>Convert binary <code>110101</code> to decimal.</li>
+      <li>Convert binary <code>10111100</code> to hexadecimal.</li>
+      <li>If a battery provides 9V and the circuit has 3Ω of resistance, what is the current (use Ohm's Law)?</li>
+      <li>Explain in your own words why digital circuits use only 2 voltage levels instead of 10.</li>
+    </ol>
+  </section>
+
+  <section class="chapter-section" id="interview-questions" data-nav="Interview questions">
+    <h2>Interview Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>Why do digital systems use binary instead of decimal?</summary><div class="answer">Because it's far easier and more reliable to build circuits that distinguish between just two voltage states (present/absent) than ten precise voltage levels. Binary is naturally robust against electrical noise.</div></details></li>
+      <li><details class="qa"><summary>What is the relationship between binary and hexadecimal?</summary><div class="answer">Exactly 4 binary bits map to exactly 1 hex digit, because 2⁴ = 16, which is the base of hexadecimal. This makes hex a lossless shorthand for binary.</div></details></li>
+      <li><details class="qa"><summary>What is a noise margin and why does it matter?</summary><div class="answer">It's the voltage gap between the defined HIGH and LOW ranges. It exists so that small amounts of electrical noise don't accidentally flip a signal's interpreted logical value, improving reliability.</div></details></li>
+      <li><details class="qa"><summary>State Ohm's Law and explain each term physically.</summary><div class="answer">V = I × R. Voltage (V) is electrical pressure, Current (I) is the rate of electron flow, and Resistance (R) is opposition to that flow — analogous to water pressure, flow rate, and pipe narrowness.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="viva-questions" data-nav="Viva questions">
+    <h2>Viva Questions (Lab Exam Style)</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>Convert 47 to binary on the board, live.</summary><div class="answer">47 = 32 + 8 + 4 + 2 + 1 → binary 101111.</div></details></li>
+      <li><details class="qa"><summary>What voltage range typically represents logical LOW in 3.3V logic?</summary><div class="answer">Roughly 0V to 0.8V (exact thresholds vary by chip family/datasheet).</div></details></li>
+      <li><details class="qa"><summary>Why can't we just use decimal directly inside a chip?</summary><div class="answer">Because reliably generating and distinguishing 10 distinct voltage levels inside a noisy electronic environment is far harder and less robust than distinguishing just 2.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="assignments" data-nav="Assignments & answers">
+    <h2>Assignments</h2>
+    <p>1. Build a table converting decimal 0–20 into both binary and hexadecimal by hand. 2. Using a multimeter (or simulator), measure the voltage across a simple resistor circuit and verify Ohm's Law numerically. 3. Write, in your own words (minimum 150 words), why you think engineers chose binary over any other number base — as if explaining it to a friend who has never studied electronics.</p>
+    <details class="qa" style="margin-top:16px;">
+      <summary>Reveal Answers to Practice Questions</summary>
+      <div class="answer">
+        1) 25 = 16+8+1 → <code>11001</code><br>
+        2) 110101 = 32+16+4+1 = <b>53</b><br>
+        3) 1011 1100 → B, C → <code>0xBC</code><br>
+        4) I = V/R = 9/3 = <b>3A</b><br>
+        5) Open-ended — check for mention of noise margin / reliability.
+      </div>
+    </details>
+  </section>
+
+  <div class="footer-nav">
+    <a href="index.html"><span class="lbl">← BACK</span>Home</a>
+    <a href="chapter-02.html" class="next"><span class="lbl">NEXT</span>Logic Gates & Boolean Algebra</a>
+  </div>
+
+</article>
+</div>
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">↑</button>
+
+<script>window.CURRENT_CHAPTER_ID = "ch-01";</script>
+<script src="shared/nav.js"></script>
+<script>document.getElementById("reading-time-2") && (document.addEventListener("DOMContentLoaded", () => { const t = document.getElementById("reading-time"); if(t) document.getElementById("reading-time-2").textContent = t.textContent; }));</script>
+</body>
+</html>
