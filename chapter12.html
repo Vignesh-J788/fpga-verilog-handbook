@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 12 · Tasks, Functions, Testbenches & Simulation — FPGA & Verilog Handbook</title>
+<link rel="stylesheet" href="shared/styles.css">
+<style>
+  .blockbox{ fill:#141b26; stroke:#3b82f6; stroke-width:2; }
+  .blocklbl{ fill:#dbe6f0; font-family:ui-monospace,monospace; font-size:13px; }
+  .pinlbl{ fill:#93a4b8; font-family:ui-monospace,monospace; font-size:11.5px; }
+  .wire{ stroke:#93a4b8; stroke-width:2; fill:none; }
+</style>
+</head>
+<body>
+<div class="board-grid"></div>
+
+<div class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Open chapter menu"><span></span><span></span><span></span></button>
+  <div class="topbar-title"><b>Chapter 12</b> · Tasks, Functions, Testbenches & Simulation</div>
+  <div class="topbar-right"><span id="reading-time" class="dim" style="font-family:var(--font-mono);font-size:12px;"></span></div>
+</div>
+<div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="logo">◈ FPGA & VERILOG HANDBOOK</div>
+    <div class="tag">From absolute zero to a working FPGA board</div>
+  </div>
+  <div class="sidebar-search"><input type="text" id="sidebar-search-input" placeholder="Search chapters..."></div>
+  <div class="sidebar-group" id="sidebar-list"></div>
+</nav>
+
+<div class="page-wrap">
+<article class="sheet">
+
+  <div class="eyebrow">Part 3 · Verilog HDL From Zero — Chapter 12</div>
+  <h1 class="h-title">Tasks, Functions, Testbenches & Simulation</h1>
+  <p class="h-sub">You've written real hardware. Now you'll learn to prove it actually works — before it ever touches a physical FPGA — using a testbench, the single most important habit separating a hobbyist from a real design engineer.</p>
+  <div class="meta-row"><span>📖 Beginner Level</span><span>🕐 <span id="reading-time-2">—</span></span><span>🧩 8 sections</span></div>
+
+  <section class="chapter-section" id="why-verify" data-nav="Why we verify before hardware">
+    <h2>Why We Verify Before Touching Real Hardware</h2>
+    <p>Every circuit you've written so far <i>looks</i> correct on paper — but "looks correct" and "is actually correct" are very different things. Downloading a design straight to an FPGA and just hoping it works is slow (each attempt takes real time to rebuild) and gives you almost no visibility into <i>why</i> something misbehaves. Instead, professional engineers run their design entirely inside a <b>simulator</b> first — a program that pretends to be real hardware, tracks every signal over time, and lets you inspect exactly what happened, at every single instant, before ever touching a real chip.</p>
+  </section>
+
+  <section class="chapter-section" id="functions" data-nav="Functions">
+    <h2><code>function</code> — A Reusable, Instant Calculation</h2>
+    <p>A <code>function</code> packages up a piece of <b>combinational</b> logic you want to reuse — it takes one or more inputs, and returns exactly <b>one</b> value, instantly, with <b>no time delays allowed</b> inside it whatsoever (no <code>#10</code>, ever). Think of it as a named, reusable formula.</p>
+    <div class="codeblock">
+      <div class="code-head"><span>verilog · a function computing parity of a 4-bit bus</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">function</span> <span class="id">parity</span>;
+    <span class="kw">input</span> [3:0] <span class="id">data</span>;
+    <span class="kw">begin</span>
+        <span class="id">parity</span> = <span class="id">data</span>[0] ^ <span class="id">data</span>[1] ^ <span class="id">data</span>[2] ^ <span class="id">data</span>[3];
+    <span class="kw">end</span>
+<span class="kw">endfunction</span></pre>
+    </div>
+    <p>Notice the function's name itself (<code>parity</code>) doubles as its return value — assigning to <code>parity</code> inside the body is how you set what gets returned. You'd call it just like a value: <code>result = parity(mybus);</code></p>
+  </section>
+
+  <section class="chapter-section" id="tasks" data-nav="Tasks">
+    <h2><code>task</code> — A Reusable Procedure (Delays Allowed)</h2>
+    <p>A <code>task</code> is a more flexible cousin of a function: it can take multiple inputs <b>and</b> multiple outputs, and — critically — it <b>is</b> allowed to contain time delays (<code>#10</code>). This makes tasks perfect for testbenches, where you often want to package up "apply this stimulus, then wait, then check the result" into one reusable step.</p>
+    <div class="codeblock">
+      <div class="code-head"><span>verilog · a task for applying stimulus and printing the result</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">task</span> <span class="id">apply_and_check</span>;
+    <span class="kw">input</span> <span class="id">a_val</span>, <span class="id">b_val</span>;
+    <span class="kw">begin</span>
+        <span class="id">a</span> = <span class="id">a_val</span>;
+        <span class="id">b</span> = <span class="id">b_val</span>;
+        #10;   <span class="cmt">// wait for the circuit to settle</span>
+        <span class="kw">$display</span>(<span class="str">"a=%b b=%b sum=%b carry=%b"</span>, <span class="id">a</span>, <span class="id">b</span>, <span class="id">sum</span>, <span class="id">carry</span>);
+    <span class="kw">end</span>
+<span class="kw">endtask</span></pre>
+    </div>
+    <table>
+      <thead><tr><th></th><th>function</th><th>task</th></tr></thead>
+      <tbody>
+        <tr><td>Returns</td><td>Exactly one value</td><td>Zero or more (via output/inout args)</td></tr>
+        <tr><td>Time delays (#10) allowed?</td><td>Never</td><td>Yes</td></tr>
+        <tr><td>Typical use</td><td>Reusable combinational calculation</td><td>Reusable testbench procedure</td></tr>
+        <tr><td>Synthesizable?</td><td>Yes (if delay-free)</td><td>Usually only used in testbenches (not synthesized)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="chapter-section" id="testbench-concept" data-nav="What is a testbench?">
+    <h2>What Exactly Is a Testbench?</h2>
+    <p>A <b>testbench</b> is itself just another Verilog module — but one that is <b>never synthesized</b>, never becomes real hardware, and exists purely inside the simulator. Its job is simple: instantiate your real design (traditionally called the <b>DUT</b>, "Device Under Test," or <b>UUT</b>, "Unit Under Test"), drive its inputs with test values over time, and observe or check its outputs.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 420 200" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <rect x="20" y="20" width="380" height="160" rx="8" fill="none" stroke="#2a3a4d" stroke-width="2" stroke-dasharray="6 4"/>
+        <text x="30" y="12" class="pinlbl">testbench module (never synthesized)</text>
+        <rect x="45" y="60" width="120" height="70" rx="6" fill="#141b26" stroke="#f5a524" stroke-width="2"/><text x="58" y="100" class="blocklbl">initial block<tspan x="58" dy="16" font-size="11">(stimulus)</tspan></text>
+        <line x1="165" y1="95" x2="230" y2="95" class="wire"/>
+        <rect x="230" y="60" width="140" height="70" rx="6" class="blockbox"/><text x="252" y="100" class="blocklbl">DUT / UUT<tspan x="252" dy="16" font-size="11">(your real design)</tspan></text>
+        <line x1="300" y1="130" x2="300" y2="155" class="wire"/>
+        <text x="235" y="170" class="pinlbl" fill="#34d399">$display / $monitor observes outputs</text>
+      </svg>
+      <figcaption>The testbench drives inputs into your DUT and watches what comes out — nothing here is ever built into real hardware.</figcaption>
+    </figure>
+  </section>
+
+  <section class="chapter-section" id="full-testbench" data-nav="A complete testbench">
+    <h2>A Complete, Working Testbench</h2>
+    <p>Let's write a full testbench for Chapter 9's <code>half_adder</code> module, testing all 4 possible input combinations:</p>
+    <div class="codeblock">
+      <div class="code-head"><span>half_adder_tb.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">half_adder_tb</span>;
+
+    <span class="typ">reg</span>  <span class="id">a</span>, <span class="id">b</span>;
+    <span class="typ">wire</span> <span class="id">sum</span>, <span class="id">carry</span>;
+
+    <span class="cmt">// instantiate the DUT (Device Under Test)</span>
+    <span class="id">half_adder</span> <span class="id">uut</span> (
+        .<span class="id">a</span>(<span class="id">a</span>),
+        .<span class="id">b</span>(<span class="id">b</span>),
+        .<span class="id">sum</span>(<span class="id">sum</span>),
+        .<span class="id">carry</span>(<span class="id">carry</span>)
+    );
+
+    <span class="kw">initial</span> <span class="kw">begin</span>
+        <span class="kw">$dumpfile</span>(<span class="str">"half_adder.vcd"</span>);   <span class="cmt">// waveform output file</span>
+        <span class="kw">$dumpvars</span>(0, <span class="id">half_adder_tb</span>);
+
+        <span class="id">a</span>=0; <span class="id">b</span>=0; #10;
+        <span class="id">a</span>=0; <span class="id">b</span>=1; #10;
+        <span class="id">a</span>=1; <span class="id">b</span>=0; #10;
+        <span class="id">a</span>=1; <span class="id">b</span>=1; #10;
+
+        <span class="kw">$finish</span>;
+    <span class="kw">end</span>
+
+    <span class="kw">initial</span>
+        <span class="kw">$monitor</span>(<span class="str">"time=%0t  a=%b b=%b -> sum=%b carry=%b"</span>, <span class="kw">$time</span>, <span class="id">a</span>, <span class="id">b</span>, <span class="id">sum</span>, <span class="id">carry</span>);
+
+<span class="kw">endmodule</span></pre>
+    </div>
+    <p>Walking through it: we declare <code>a</code> and <code>b</code> as <code>reg</code> (because the testbench <i>drives</i> them, procedurally), and <code>sum</code>/<code>carry</code> as <code>wire</code> (because they're driven <i>by</i> the DUT, not by us). The instantiation wires our testbench signals to the half adder's ports. One <code>initial</code> block feeds in all 4 input combinations, 10 time units apart; a second, separate <code>initial</code> block with <code>$monitor</code> automatically prints a line every single time any watched signal changes.</p>
+  </section>
+
+  <section class="chapter-section" id="system-tasks" data-nav="Useful system tasks">
+    <h2>Useful Built-In System Tasks</h2>
+    <table>
+      <thead><tr><th>System task</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code>$display(...)</code></td><td>Prints a message once, immediately, like a single print statement</td></tr>
+        <tr><td><code>$monitor(...)</code></td><td>Automatically re-prints its message every time any signal inside it changes — no need to call it repeatedly</td></tr>
+        <tr><td><code>$time</code></td><td>Returns the current simulation time</td></tr>
+        <tr><td><code>$dumpfile("name.vcd")</code></td><td>Names the waveform output file the simulator will write</td></tr>
+        <tr><td><code>$dumpvars(0, module_name)</code></td><td>Tells the simulator to record every signal inside the given module (and, with 0, everything below it too) into that waveform file</td></tr>
+        <tr><td><code>$finish</code></td><td>Ends the simulation</td></tr>
+      </tbody>
+    </table>
+    <p>The <code>%b</code>, <code>%d</code>, <code>%h</code> inside these format strings work almost exactly like C's <code>printf</code> — binary, decimal, and hex formatting respectively, tying directly back to Chapter 1's number systems.</p>
+  </section>
+
+  <section class="chapter-section" id="waveforms" data-nav="Reading a waveform">
+    <h2>From Text Output to a Real Waveform</h2>
+    <p>The <code>.vcd</code> file created by <code>$dumpfile</code>/<code>$dumpvars</code> can be opened in a waveform viewer (like the open-source GTKWave, or Vivado's own built-in simulator, Chapter 24) to see every signal drawn as a timing diagram — exactly like the clock and signal diagrams you've already seen in Chapters 1, 5, and 10, except now generated automatically from your own design's real simulated behavior.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 480 150" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <text x="0" y="24" class="pinlbl">a</text>
+        <path d="M30,30 L150,30 L150,10 L270,10 L270,30 L390,30 L390,10 L450,10" fill="none" stroke="#3b82f6" stroke-width="2"/>
+        <text x="0" y="64" class="pinlbl">b</text>
+        <path d="M30,70 L270,70 L270,50 L390,50 L390,70 L450,70" fill="none" stroke="#3b82f6" stroke-width="2"/>
+        <text x="0" y="104" class="pinlbl">sum</text>
+        <path d="M30,110 L150,110 L150,90 L270,90 L270,110 L390,110 L390,90 L450,90" fill="none" stroke="#34d399" stroke-width="2"/>
+        <text x="0" y="140" class="pinlbl">carry</text>
+        <path d="M30,145 L390,145 L390,125 L450,125" fill="none" stroke="#f5a524" stroke-width="2"/>
+        <line x1="150" y1="0" x2="150" y2="150" stroke="#1e2836" stroke-dasharray="2 3"/>
+        <line x1="270" y1="0" x2="270" y2="150" stroke="#1e2836" stroke-dasharray="2 3"/>
+        <line x1="390" y1="0" x2="390" y2="150" stroke="#1e2836" stroke-dasharray="2 3"/>
+      </svg>
+      <figcaption>The half_adder_tb waveform: a=0,b=1→sum=1; a=1,b=0→sum=1; a=1,b=1→sum=0,carry=1 — matching Chapter 4's truth table exactly.</figcaption>
+    </figure>
+  </section>
+
+  <section class="chapter-section" id="summary" data-nav="Summary & key points">
+    <h2>Summary</h2>
+    <p>A <code>function</code> packages reusable, instant combinational logic and returns exactly one value, with no time delays allowed. A <code>task</code> is more flexible — multiple outputs, and time delays are allowed — making it ideal for testbenches. A testbench is a non-synthesizable module that instantiates your real design (the DUT/UUT), drives its inputs over time, and observes its outputs using system tasks like <code>$display</code>, <code>$monitor</code>, and <code>$finish</code>. <code>$dumpfile</code>/<code>$dumpvars</code> record every signal into a waveform file, viewable in tools like GTKWave or Vivado's simulator, turning your design's behavior into the same kind of timing diagram you've been reading since Chapter 1.</p>
+    <h3>Key Points</h3>
+    <ul>
+      <li>function = one return value, no delays, synthesizable combinational logic.</li>
+      <li>task = multiple outputs allowed, delays allowed, mainly used in testbenches.</li>
+      <li>Testbench = non-synthesizable module instantiating your DUT and driving/checking it.</li>
+      <li>$display prints once; $monitor auto-prints on every change; $finish ends simulation.</li>
+      <li>$dumpfile + $dumpvars create a .vcd waveform file for visual inspection.</li>
+    </ul>
+    <div class="mem-trick"><b>Memory Trick:</b> "function = a formula (one answer, no waiting). task = a recipe (can wait, can produce many results). Testbench = the strict teacher checking your circuit's homework before it's allowed near real hardware."</div>
+  </section>
+
+  <section class="chapter-section" id="practice-questions" data-nav="Practice questions">
+    <h2>Practice Questions</h2>
+    <ol>
+      <li>Why can't a function contain a time delay like <code>#10</code>?</li>
+      <li>Write a complete testbench for the AND gate module from Chapter 9, testing all 4 input combinations.</li>
+      <li>What is the difference between <code>$display</code> and <code>$monitor</code>?</li>
+      <li>Why is a testbench never synthesized into real hardware?</li>
+    </ol>
+  </section>
+
+  <section class="chapter-section" id="interview-questions" data-nav="Interview questions">
+    <h2>Interview Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>What is the fundamental difference between a task and a function in Verilog?</summary><div class="answer">A function returns exactly one value, must execute in zero simulation time (no delays), and is generally synthesizable. A task can have multiple outputs, may contain time delays, and is typically used in testbenches rather than synthesized designs.</div></details></li>
+      <li><details class="qa"><summary>What is a DUT/UUT?</summary><div class="answer">"Device Under Test" / "Unit Under Test" — the real design being verified, instantiated inside a testbench so its behavior can be driven and observed.</div></details></li>
+      <li><details class="qa"><summary>Why is simulation done before synthesizing a design to real hardware?</summary><div class="answer">Simulation lets engineers verify correctness quickly and cheaply, with full visibility into every internal signal over time, catching bugs long before committing to the slower, more expensive process of building and testing on real hardware.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="viva-questions" data-nav="Viva questions">
+    <h2>Viva Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>Which system task ends a simulation?</summary><div class="answer">$finish</div></details></li>
+      <li><details class="qa"><summary>What file type do $dumpfile/$dumpvars produce?</summary><div class="answer">A .vcd (Value Change Dump) waveform file.</div></details></li>
+      <li><details class="qa"><summary>Can a function be synthesized into real hardware?</summary><div class="answer">Yes, provided it contains no time delays or other simulation-only constructs — it's treated as reusable combinational logic.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="assignments" data-nav="Assignments & answers">
+    <h2>Assignments</h2>
+    <p>1. Write a function that returns the larger of two 4-bit inputs (a simple 2-input comparator, previewing Chapter 19). 2. Write a full testbench for the mini_alu module from Chapter 11, testing all 4 operations with at least two different input pairs each. 3. Explain, in 100+ words, why $monitor is generally more convenient than repeated $display calls inside a loop.</p>
+    <details class="qa" style="margin-top:16px;">
+      <summary>Reveal Answers to Practice Questions</summary>
+      <div class="answer">
+        1) Because a function must complete in zero simulation time — a delay would require it to "pause," which contradicts its definition as an instant calculation.<br>
+        2) Instantiate and_gate as uut, drive a/b through all 4 combinations with #10 between each, and use $monitor to print a, b, and y at every change — following the same structure as the half_adder_tb example.<br>
+        3) $display prints its message exactly once, at the moment it's called. $monitor automatically re-prints its message every time any of its watched signals changes, without needing to be called again.<br>
+        4) Because it's simply another Verilog module used only within the simulator — it contains constructs (like arbitrary time delays and unconstrained procedural stimulus) that have no synthesizable hardware equivalent, and its entire purpose is verification, not implementation.
+      </div>
+    </details>
+  </section>
+
+  <div class="footer-nav">
+    <a href="chapter-11.html"><span class="lbl">← BACK</span>if/else, case, loops, generate, parameters</a>
+    <a href="chapter-13.html" class="next"><span class="lbl">NEXT</span>Blocking vs Non-blocking, Synthesis vs RTL vs Timing</a>
+  </div>
+
+</article>
+</div>
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">↑</button>
+
+<script>window.CURRENT_CHAPTER_ID = "ch-12";</script>
+<script src="shared/nav.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => { const t = document.getElementById("reading-time"); const t2 = document.getElementById("reading-time-2"); if(t && t2){ const obs = new MutationObserver(()=>{ t2.textContent = t.textContent; }); obs.observe(t, {childList:true}); } });</script>
+</body>
+</html>
