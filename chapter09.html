@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 9 · Verilog Basics — FPGA & Verilog Handbook</title>
+<link rel="stylesheet" href="shared/styles.css">
+<style>
+  .blockbox{ fill:#141b26; stroke:#3b82f6; stroke-width:2; }
+  .blocklbl{ fill:#dbe6f0; font-family:ui-monospace,monospace; font-size:13px; }
+  .pinlbl{ fill:#93a4b8; font-family:ui-monospace,monospace; font-size:11.5px; }
+  .wire{ stroke:#93a4b8; stroke-width:2; fill:none; }
+</style>
+</head>
+<body>
+<div class="board-grid"></div>
+
+<div class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Open chapter menu"><span></span><span></span><span></span></button>
+  <div class="topbar-title"><b>Chapter 09</b> · Verilog Basics: module, ports, wire, reg, assign</div>
+  <div class="topbar-right"><span id="reading-time" class="dim" style="font-family:var(--font-mono);font-size:12px;"></span></div>
+</div>
+<div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="logo">◈ FPGA & VERILOG HANDBOOK</div>
+    <div class="tag">From absolute zero to a working FPGA board</div>
+  </div>
+  <div class="sidebar-search"><input type="text" id="sidebar-search-input" placeholder="Search chapters..."></div>
+  <div class="sidebar-group" id="sidebar-list"></div>
+</nav>
+
+<div class="page-wrap">
+<article class="sheet">
+
+  <div class="eyebrow">Part 3 · Verilog HDL From Zero — Chapter 09 (First chapter of Part 3)</div>
+  <h1 class="h-title">Verilog Basics: module, ports, wire, reg, assign</h1>
+  <p class="h-sub">This is the chapter where you write your first real hardware. Before any syntax, we need to fix one idea firmly in your head: Verilog is not a programming language in the way C is — it's a language for <i>describing hardware that already exists in parallel</i>.</p>
+  <div class="meta-row"><span>📖 Beginner Level</span><span>🕐 <span id="reading-time-2">—</span></span><span>🧩 8 sections</span></div>
+
+  <section class="chapter-section" id="what-is-hdl" data-nav="What is a Hardware Description Language?">
+    <h2>What Is a Hardware Description Language?</h2>
+    <p>Verilog is a <b>Hardware Description Language (HDL)</b>. That name is precise — you're not writing a sequence of steps for a processor to execute one at a time. You're <b>describing a circuit</b> — a structure of gates, wires, and registers that will physically exist, all operating simultaneously, the instant it's configured onto an FPGA (Chapter 7).</p>
+    <div class="callout warn">
+      <div class="callout-title">The single biggest mental trap for beginners coming from C</div>
+      In C, code executes top to bottom, one line at a time — line 5 waits for line 4 to finish. In Verilog, most of what you write describes things that exist <b>all at once, forever, in parallel</b> — much closer to describing a diagram than describing a sequence of actions. Two <code>assign</code> statements don't happen "one after the other" — they're both just permanently true statements about how two different wires behave, like two separate physical wires sitting on a breadboard at the same time. We'll come back to this contrast constantly, because it's the #1 source of beginner bugs.
+    </div>
+  </section>
+
+  <section class="chapter-section" id="module-endmodule" data-nav="module ... endmodule">
+    <h2><code>module</code> and <code>endmodule</code> — The Basic Container</h2>
+    <p>Every single piece of hardware you describe in Verilog lives inside a <b>module</b>. Think of a module as a labeled black box: it has a name, a defined set of connection points (called <b>ports</b>), and, inside, a description of exactly what it does. Every module you write must start with the keyword <code>module</code> and end with <code>endmodule</code> — no exceptions, ever.</p>
+    <div class="analogy-box">
+      <div class="tag">Analogy · A Labeled Kitchen Appliance</div>
+      <p style="margin-bottom:0">Think of a module like a blender: it has a name ("Blender"), clearly labeled sockets on the outside (power cord in, blended smoothie out), and internal machinery you don't need to see from the outside to use it. In Verilog, the module's <i>name</i> and its <i>ports</i> are the labeled sockets; everything between <code>module</code> and <code>endmodule</code> is the internal machinery.</p>
+    </div>
+    <div class="codeblock">
+      <div class="code-head"><span>verilog · empty module skeleton</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">my_circuit</span> (
+    <span class="cmt">// ports will go here</span>
+);
+
+    <span class="cmt">// circuit description will go here</span>
+
+<span class="kw">endmodule</span></pre>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="ports" data-nav="Ports: input, output, inout">
+    <h2>Ports — The Module's Connection Points</h2>
+    <p>A port is one labeled wire on the outside of your module's "box" — exactly like a socket on the blender. Every port must be declared as one of three directions:</p>
+    <ul>
+      <li><b><code>input</code></b> — a signal coming <i>into</i> this module from the outside world. This module can read it, but never change it.</li>
+      <li><b><code>output</code></b> — a signal this module sends <i>out</i> to the world. Other modules can read it, but never drive it themselves.</li>
+      <li><b><code>inout</code></b> — a bidirectional port that can act as either, at different times (rare for beginners; used for things like shared data buses).</li>
+    </ul>
+    <figure class="diagram">
+      <svg viewBox="0 0 320 160" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <rect x="90" y="30" width="140" height="100" rx="8" class="blockbox"/>
+        <text x="118" y="85" class="blocklbl">my_circuit</text>
+        <line x1="20" y1="55" x2="90" y2="55" class="wire"/><text x="4" y="45" class="pinlbl">input a</text>
+        <line x1="20" y1="105" x2="90" y2="105" class="wire"/><text x="4" y="95" class="pinlbl">input b</text>
+        <line x1="230" y1="80" x2="300" y2="80" class="wire"/><text x="240" y="70" class="pinlbl">output y</text>
+      </svg>
+      <figcaption>A module is a labeled box: inputs enter on one side, outputs leave on the other. Everything inside is hidden machinery.</figcaption>
+    </figure>
+    <div class="codeblock">
+      <div class="code-head"><span>verilog · a module with ports declared</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">my_circuit</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">a</span>,
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">b</span>,
+    <span class="kw">output</span> <span class="typ">wire</span> <span class="id">y</span>
+);
+
+    <span class="cmt">// circuit description will go here</span>
+
+<span class="kw">endmodule</span></pre>
+    </div>
+    <p class="dim">Notice the ports are simply separated by commas inside the parentheses, and each one states its direction (<code>input</code>/<code>output</code>) and its type (<code>wire</code>, explained next).</p>
+  </section>
+
+  <section class="chapter-section" id="wire-vs-reg" data-nav="wire vs reg">
+    <h2><code>wire</code> vs <code>reg</code> — The Distinction That Confuses Everyone</h2>
+    <p>This is genuinely the single most common point of confusion for every Verilog beginner, so let's be extremely precise:</p>
+    <div class="grid-2">
+      <div class="callout">
+        <div class="callout-title">wire</div>
+        A <code>wire</code> represents a real, physical connection — like an actual copper trace. It has <b>no memory of its own</b> and cannot store a value; it simply, continuously reflects whatever is being driven onto it at this exact instant, by something else (usually an <code>assign</code> statement, or a gate).
+      </div>
+      <div class="callout warn">
+        <div class="callout-title">reg</div>
+        A <code>reg</code> is a variable that <b>holds</b> a value between updates — but here's the trap: <b>a <code>reg</code> does NOT automatically mean a real flip-flop/memory will be built!</b> It's simply the required keyword for anything assigned inside a procedural block (<code>always</code>, <code>initial</code> — Chapter 10). Whether real hardware memory gets built depends entirely on <i>how</i> you write that block, not on the keyword itself.
+      </div>
+    </div>
+    <div class="callout good">
+      <div class="callout-title">The simple rule for now</div>
+      If you're assigning a signal using <code>assign</code> (outside any procedural block), it must be a <code>wire</code>. If you're assigning a signal inside an <code>always</code> block (Chapter 10), it must be declared as a <code>reg</code> — even if, as you'll later see, it ends up describing perfectly ordinary combinational logic with no real memory at all. This chapter only uses <code>assign</code>, so every signal here will be a <code>wire</code>.
+    </div>
+  </section>
+
+  <section class="chapter-section" id="assign" data-nav="The assign statement">
+    <h2>The <code>assign</code> Statement — Continuous Assignment</h2>
+    <p><code>assign</code> creates a permanent, continuous relationship between a wire and an expression — it is <b>always</b> true, constantly, forever, exactly like a real physical wire connected through a gate. The moment any input on the right-hand side changes, the output updates automatically and instantly — you never need to explicitly say "now update the output."</p>
+    <div class="codeblock">
+      <div class="code-head"><span>verilog · assign syntax</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">assign</span> <span class="id">y</span> = <span class="id">a</span> & <span class="id">b</span>;   <span class="cmt">// y is continuously equal to (a AND b)</span></pre>
+    </div>
+    <p>The operators you use inside an <code>assign</code> should look familiar from Chapter 2's Boolean algebra:</p>
+    <table>
+      <thead><tr><th>Verilog operator</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>&amp;</code></td><td>AND</td></tr>
+        <tr><td><code>|</code></td><td>OR</td></tr>
+        <tr><td><code>~</code></td><td>NOT</td></tr>
+        <tr><td><code>^</code></td><td>XOR</td></tr>
+        <tr><td><code>~^</code> or <code>^~</code></td><td>XNOR</td></tr>
+        <tr><td><code>~&amp;</code></td><td>NAND</td></tr>
+        <tr><td><code>~|</code></td><td>NOR</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="chapter-section" id="first-examples" data-nav="Two full working examples">
+    <h2>Two Full, Complete, Working Examples</h2>
+    <h3>Example 1: An AND Gate</h3>
+    <p>Let's build the AND gate from Chapter 2 as a genuine, complete Verilog module:</p>
+    <div class="codeblock">
+      <div class="code-head"><span>and_gate.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">and_gate</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">a</span>,
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">b</span>,
+    <span class="kw">output</span> <span class="typ">wire</span> <span class="id">y</span>
+);
+
+    <span class="kw">assign</span> <span class="id">y</span> = <span class="id">a</span> & <span class="id">b</span>;   <span class="cmt">// y is HIGH only when both a and b are HIGH</span>
+
+<span class="kw">endmodule</span></pre>
+    </div>
+    <p>That's it — that's a complete, real, synthesizable Verilog description of an AND gate. Every single line has a job: <code>module and_gate(...)</code> names the box and lists its sockets, and the one <code>assign</code> line describes its entire behavior, permanently.</p>
+
+    <h3>Example 2: The Half Adder (from Chapter 4)</h3>
+    <p>Remember the half adder's equations from Chapter 4? <code>Sum = A⊕B</code> and <code>Carry = A·B</code>. Here they are, translated directly into Verilog, almost word for word:</p>
+    <div class="codeblock">
+      <div class="code-head"><span>half_adder.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">half_adder</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">a</span>,
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">b</span>,
+    <span class="kw">output</span> <span class="typ">wire</span> <span class="id">sum</span>,
+    <span class="kw">output</span> <span class="typ">wire</span> <span class="id">carry</span>
+);
+
+    <span class="kw">assign</span> <span class="id">sum</span>   = <span class="id">a</span> ^ <span class="id">b</span>;   <span class="cmt">// XOR -> sum bit</span>
+    <span class="kw">assign</span> <span class="id">carry</span> = <span class="id">a</span> & <span class="id">b</span>;   <span class="cmt">// AND -> carry bit</span>
+
+<span class="kw">endmodule</span></pre>
+    </div>
+    <div class="callout good">
+      <div class="callout-title">Notice something important</div>
+      Both <code>assign</code> lines exist <b>at the same time</b>, permanently, in parallel — exactly like two separate real wires, each connected through its own gate. This is precisely the "everything happens simultaneously" mindset from the very start of this chapter, now shown in real, working code.
+    </div>
+  </section>
+
+  <section class="chapter-section" id="comments-style" data-nav="Comments & naming style">
+    <h2>Comments and Naming Conventions</h2>
+    <p>Verilog supports the same two comment styles as C, which you already know:</p>
+    <div class="codeblock">
+      <div class="code-head"><span>verilog · comments</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="cmt">// a single-line comment</span>
+
+<span class="cmt">/* a
+   multi-line
+   comment */</span></pre>
+    </div>
+    <p>By strong convention (not a hard rule, but you should follow it): module and signal names use <code>lowercase_with_underscores</code>, module names describe what the circuit <i>is</i> (<code>half_adder</code>, <code>and_gate</code>), and port names are kept short and meaningful (<code>a</code>, <code>b</code>, <code>sum</code>, <code>carry</code> rather than vague names like <code>x1</code>, <code>temp</code>).</p>
+  </section>
+
+  <section class="chapter-section" id="summary" data-nav="Summary & key points">
+    <h2>Summary</h2>
+    <p>Verilog describes hardware, not sequential instructions — everything you write generally exists all at once, in parallel, like real physical wires. Every design lives inside a <code>module</code>...<code>endmodule</code> block, with <code>input</code>/<code>output</code>/<code>inout</code> ports as its connection points. A <code>wire</code> is a plain physical connection with no memory; a <code>reg</code> is a variable used inside procedural blocks (Chapter 10) that does <i>not</i> automatically imply real hardware memory. The <code>assign</code> statement creates a permanent, continuous relationship between a wire and an expression, instantly reacting to any change on its right-hand side.</p>
+    <h3>Key Points</h3>
+    <ul>
+      <li>Verilog describes parallel hardware, not a sequential program.</li>
+      <li>Every design lives in <code>module ... endmodule</code>.</li>
+      <li>Ports: <code>input</code>, <code>output</code>, <code>inout</code>.</li>
+      <li><code>wire</code> = plain connection, no memory. <code>reg</code> = procedural-block variable, does not automatically mean real memory hardware.</li>
+      <li><code>assign</code> = permanent, continuous, instantly-reacting relationship — used only with <code>wire</code>.</li>
+    </ul>
+    <div class="mem-trick"><b>Memory Trick:</b> "wire = a real wire, always live. reg = just a box that remembers a value in code — real memory hardware only appears if you write it that way." And: "assign is a promise that's always kept, instantly, forever."</div>
+  </section>
+
+  <section class="chapter-section" id="practice-questions" data-nav="Practice questions">
+    <h2>Practice Questions</h2>
+    <ol>
+      <li>Write a complete Verilog module for a 2-input OR gate, with proper port declarations.</li>
+      <li>Why can't you use <code>assign</code> to drive a signal declared as <code>reg</code>?</li>
+      <li>Write a Verilog module implementing a 2-input XNOR gate using the <code>~^</code> operator.</li>
+      <li>Explain, in your own words, why two <code>assign</code> statements in the same module don't "run in order."</li>
+    </ol>
+  </section>
+
+  <section class="chapter-section" id="interview-questions" data-nav="Interview questions">
+    <h2>Interview Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>What is the key conceptual difference between Verilog and a language like C?</summary><div class="answer">C describes a sequence of instructions executed one at a time by a processor. Verilog describes hardware structure and behavior — most constructs describe things that exist and operate simultaneously and continuously, not a step-by-step sequence.</div></details></li>
+      <li><details class="qa"><summary>Does declaring a signal as `reg` always mean a flip-flop will be synthesized?</summary><div class="answer">No. `reg` is simply the required keyword for signals assigned inside procedural blocks. Whether the synthesis tool builds actual memory (a flip-flop) or just combinational logic depends on how the always block is written, not the reg keyword itself.</div></details></li>
+      <li><details class="qa"><summary>What does the `assign` statement actually model in hardware?</summary><div class="answer">A permanent, continuous connection — like a real wire routed through combinational gates — that updates its output instantly whenever any input on its right-hand side changes.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="viva-questions" data-nav="Viva questions">
+    <h2>Viva Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>What keyword ends every Verilog module?</summary><div class="answer">endmodule</div></details></li>
+      <li><details class="qa"><summary>Name the three possible port directions in Verilog.</summary><div class="answer">input, output, and inout.</div></details></li>
+      <li><details class="qa"><summary>Which keyword must a signal be declared as if it's driven by an assign statement?</summary><div class="answer">wire.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="assignments" data-nav="Assignments & answers">
+    <h2>Assignments</h2>
+    <p>1. Write, compile mentally (trace through by hand), and verify a full Verilog module for a 2-input NAND gate. 2. Convert every gate from Chapter 2 (AND, OR, NOT, NAND, NOR, XOR, XNOR) into its own separate Verilog module. 3. Explain, in 100+ words, why the "everything happens in parallel" model of Verilog is actually a more accurate description of what physically happens inside an FPGA than a sequential, line-by-line model would be.</p>
+    <details class="qa" style="margin-top:16px;">
+      <summary>Reveal Answers to Practice Questions</summary>
+      <div class="answer">
+        1) <code>module or_gate(input wire a, input wire b, output wire y); assign y = a | b; endmodule</code><br>
+        2) Because `reg` doesn't represent a real physical wire — it's only a placeholder for values assigned inside procedural blocks, and `assign` (continuous assignment) is specifically for driving `wire` types outside those blocks.<br>
+        3) <code>module xnor_gate(input wire a, input wire b, output wire y); assign y = a ~^ b; endmodule</code><br>
+        4) Because in real hardware, both wires and gates exist as separate physical circuitry, permanently connected — there's no "waiting in line" for one gate's output before another gate elsewhere on the chip does its job; they all react simultaneously and continuously.
+      </div>
+    </details>
+  </section>
+
+  <div class="footer-nav">
+    <a href="chapter-08.html"><span class="lbl">← BACK</span>FPGA vs Arduino vs ESP32 vs Raspberry Pi vs MCU</a>
+    <a href="chapter-10.html" class="next"><span class="lbl">NEXT</span>always blocks, initial, operators</a>
+  </div>
+
+</article>
+</div>
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">↑</button>
+
+<script>window.CURRENT_CHAPTER_ID = "ch-09";</script>
+<script src="shared/nav.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => { const t = document.getElementById("reading-time"); const t2 = document.getElementById("reading-time-2"); if(t && t2){ const obs = new MutationObserver(()=>{ t2.textContent = t.textContent; }); obs.observe(t, {childList:true}); } });</script>
+</body>
+</html>
