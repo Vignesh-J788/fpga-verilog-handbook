@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 15 · Basic Gates (AND/OR/NOT/NAND/NOR/XOR/XNOR) — FPGA & Verilog Handbook</title>
+<link rel="stylesheet" href="shared/styles.css">
+</head>
+<body>
+<div class="board-grid"></div>
+
+<div class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Open chapter menu"><span></span><span></span><span></span></button>
+  <div class="topbar-title"><b>Chapter 15</b> · Basic Gates: AND/OR/NOT/NAND/NOR/XOR/XNOR</div>
+  <div class="topbar-right"><span id="reading-time" class="dim" style="font-family:var(--font-mono);font-size:12px;"></span></div>
+</div>
+<div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="logo">◈ FPGA & VERILOG HANDBOOK</div>
+    <div class="tag">From absolute zero to a working FPGA board</div>
+  </div>
+  <div class="sidebar-search"><input type="text" id="sidebar-search-input" placeholder="Search chapters..."></div>
+  <div class="sidebar-group" id="sidebar-list"></div>
+</nav>
+
+<div class="page-wrap">
+<article class="sheet">
+
+  <div class="eyebrow">Part 5 · Verilog Programs — Chapter 15 (First chapter of Part 5)</div>
+  <h1 class="h-title">Basic Gates: AND, OR, NOT, NAND, NOR, XOR, XNOR</h1>
+  <p class="h-sub">This is the first "program" chapter of the handbook. Chapter 2 already gave you the deep theory, truth tables, and analogies for every gate — here, we write production-quality code for all seven, verify every one of them with a real testbench, and read the resulting waveform.</p>
+  <div class="meta-row"><span>📖 Beginner Level</span><span>🕐 <span id="reading-time-2">—</span></span><span>🧩 8 sections</span></div>
+
+  <section class="chapter-section" id="quick-recap" data-nav="Quick theory recap">
+    <h2>Quick Recap (Full Theory in Chapter 2)</h2>
+    <table>
+      <thead><tr><th>Gate</th><th>Equation</th><th>Verilog operator</th></tr></thead>
+      <tbody>
+        <tr><td>AND</td><td>Y = A·B</td><td><code>&amp;</code></td></tr>
+        <tr><td>OR</td><td>Y = A+B</td><td><code>|</code></td></tr>
+        <tr><td>NOT</td><td>Y = A'</td><td><code>~</code></td></tr>
+        <tr><td>NAND</td><td>Y = (A·B)'</td><td><code>~(a &amp; b)</code></td></tr>
+        <tr><td>NOR</td><td>Y = (A+B)'</td><td><code>~(a | b)</code></td></tr>
+        <tr><td>XOR</td><td>Y = A⊕B</td><td><code>^</code></td></tr>
+        <tr><td>XNOR</td><td>Y = (A⊕B)'</td><td><code>~^</code> or <code>~(a^b)</code></td></tr>
+      </tbody>
+    </table>
+    <p class="dim">If any of these feel unfamiliar, Chapter 2 covers the full analogy, symbol, and truth table for every one of them — this chapter assumes you've read it.</p>
+  </section>
+
+  <section class="chapter-section" id="all-gates-code" data-nav="Full code: all 7 gates">
+    <h2>Complete Code: All 7 Gates in One Verified Module</h2>
+    <p>Rather than writing seven nearly-identical tiny files, real engineers often group closely related small gates into one module when they share the same inputs — here's all seven gates, sharing inputs <code>a</code> and <code>b</code>, written in clean dataflow style:</p>
+    <div class="codeblock">
+      <div class="code-head"><span>all_gates.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">all_gates</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">a</span>,
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">b</span>,
+    <span class="kw">output</span> <span class="typ">wire</span> <span class="id">y_and</span>,
+    <span class="kw">output</span> <span class="typ">wire</span> <span class="id">y_or</span>,
+    <span class="kw">output</span> <span class="typ">wire</span> <span class="id">y_not_a</span>,
+    <span class="kw">output</span> <span class="typ">wire</span> <span class="id">y_nand</span>,
+    <span class="kw">output</span> <span class="typ">wire</span> <span class="id">y_nor</span>,
+    <span class="kw">output</span> <span class="typ">wire</span> <span class="id">y_xor</span>,
+    <span class="kw">output</span> <span class="typ">wire</span> <span class="id">y_xnor</span>
+);
+
+    <span class="kw">assign</span> <span class="id">y_and</span>   = <span class="id">a</span> & <span class="id">b</span>;
+    <span class="kw">assign</span> <span class="id">y_or</span>    = <span class="id">a</span> | <span class="id">b</span>;
+    <span class="kw">assign</span> <span class="id">y_not_a</span> = ~<span class="id">a</span>;
+    <span class="kw">assign</span> <span class="id">y_nand</span>  = ~(<span class="id">a</span> & <span class="id">b</span>);
+    <span class="kw">assign</span> <span class="id">y_nor</span>   = ~(<span class="id">a</span> | <span class="id">b</span>);
+    <span class="kw">assign</span> <span class="id">y_xor</span>   = <span class="id">a</span> ^ <span class="id">b</span>;
+    <span class="kw">assign</span> <span class="id">y_xnor</span>  = ~(<span class="id">a</span> ^ <span class="id">b</span>);
+
+<span class="kw">endmodule</span></pre>
+    </div>
+    <p class="dim">Behaviorally identical version: wrap the same seven lines in <code>always @(*) begin ... end</code>, changing <code>=</code> to keep blocking assignment and declaring every output as <code>reg</code> instead of <code>wire</code> (Chapter 14). Both produce exactly the same synthesized hardware.</p>
+  </section>
+
+  <section class="chapter-section" id="testbench" data-nav="Full testbench">
+    <h2>Full Testbench — Verifying All 7 Gates At Once</h2>
+    <div class="codeblock">
+      <div class="code-head"><span>all_gates_tb.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">all_gates_tb</span>;
+
+    <span class="typ">reg</span>  <span class="id">a</span>, <span class="id">b</span>;
+    <span class="typ">wire</span> <span class="id">y_and</span>, <span class="id">y_or</span>, <span class="id">y_not_a</span>, <span class="id">y_nand</span>, <span class="id">y_nor</span>, <span class="id">y_xor</span>, <span class="id">y_xnor</span>;
+
+    <span class="id">all_gates</span> <span class="id">uut</span> (
+        .<span class="id">a</span>(<span class="id">a</span>), .<span class="id">b</span>(<span class="id">b</span>),
+        .<span class="id">y_and</span>(<span class="id">y_and</span>), .<span class="id">y_or</span>(<span class="id">y_or</span>), .<span class="id">y_not_a</span>(<span class="id">y_not_a</span>),
+        .<span class="id">y_nand</span>(<span class="id">y_nand</span>), .<span class="id">y_nor</span>(<span class="id">y_nor</span>),
+        .<span class="id">y_xor</span>(<span class="id">y_xor</span>), .<span class="id">y_xnor</span>(<span class="id">y_xnor</span>)
+    );
+
+    <span class="kw">initial</span> <span class="kw">begin</span>
+        <span class="kw">$dumpfile</span>(<span class="str">"all_gates.vcd"</span>);
+        <span class="kw">$dumpvars</span>(0, <span class="id">all_gates_tb</span>);
+
+        <span class="id">a</span>=0; <span class="id">b</span>=0; #10;
+        <span class="id">a</span>=0; <span class="id">b</span>=1; #10;
+        <span class="id">a</span>=1; <span class="id">b</span>=0; #10;
+        <span class="id">a</span>=1; <span class="id">b</span>=1; #10;
+
+        <span class="kw">$finish</span>;
+    <span class="kw">end</span>
+
+    <span class="kw">initial</span>
+        <span class="kw">$monitor</span>(<span class="str">"t=%0t a=%b b=%b | AND=%b OR=%b NOT_A=%b NAND=%b NOR=%b XOR=%b XNOR=%b"</span>,
+                 <span class="kw">$time</span>, <span class="id">a</span>, <span class="id">b</span>, <span class="id">y_and</span>, <span class="id">y_or</span>, <span class="id">y_not_a</span>, <span class="id">y_nand</span>, <span class="id">y_nor</span>, <span class="id">y_xor</span>, <span class="id">y_xnor</span>);
+
+<span class="kw">endmodule</span></pre>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="expected-output" data-nav="Expected output">
+    <h2>Expected Simulation Output</h2>
+    <table>
+      <thead><tr><th>t</th><th>a</th><th>b</th><th>AND</th><th>OR</th><th>NOT_A</th><th>NAND</th><th>NOR</th><th>XOR</th><th>XNOR</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>1</td><td>1</td><td>0</td><td>1</td></tr>
+        <tr><td>10</td><td>0</td><td>1</td><td>0</td><td>1</td><td>1</td><td>1</td><td>0</td><td>1</td><td>0</td></tr>
+        <tr><td>20</td><td>1</td><td>0</td><td>0</td><td>1</td><td>0</td><td>1</td><td>0</td><td>1</td><td>0</td></tr>
+        <tr><td>30</td><td>1</td><td>1</td><td>1</td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td></tr>
+      </tbody>
+    </table>
+    <p>Cross-check every column against Chapter 2's individual truth tables — they must match exactly, row for row. This cross-checking habit (comparing simulated output against hand-derived expected values) is the single most important verification skill in this entire handbook.</p>
+  </section>
+
+  <section class="chapter-section" id="waveform" data-nav="Waveform">
+    <h2>Reading the Waveform</h2>
+    <figure class="diagram">
+      <svg viewBox="0 0 480 220" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <g font-family="ui-monospace,monospace" font-size="11" fill="#93a4b8">
+          <text x="0" y="24">a</text><text x="0" y="54">b</text><text x="0" y="84">AND</text><text x="0" y="114">OR</text><text x="0" y="144">XOR</text><text x="0" y="174">XNOR</text>
+        </g>
+        <path d="M40,30 L160,30 L160,10 L280,10 L280,30 L400,30 L400,10 L460,10" fill="none" stroke="#3b82f6" stroke-width="2"/>
+        <path d="M40,60 L280,60 L280,40 L400,40 L400,60 L460,60" fill="none" stroke="#3b82f6" stroke-width="2"/>
+        <path d="M40,90 L400,90 L400,70 L460,70" fill="none" stroke="#34d399" stroke-width="2"/>
+        <path d="M40,120 L160,120 L160,100 L400,100 L400,120 L460,120" fill="none" stroke="#34d399" stroke-width="2" style="display:none"/>
+        <path d="M40,120 L160,120 L160,100 L460,100" fill="none" stroke="#34d399" stroke-width="2"/>
+        <path d="M40,150 L160,150 L160,130 L280,130 L280,150 L400,150 L400,130 L460,130" fill="none" stroke="#f5a524" stroke-width="2"/>
+        <path d="M40,160 L160,160 L160,180 L280,180 L280,160 L400,160 L400,180 L460,180" fill="none" stroke="#c792ea" stroke-width="2" style="display:none"/>
+        <path d="M40,180 L160,180 L160,160 L280,160 L280,180 L400,180 L400,160 L460,160" fill="none" stroke="#c792ea" stroke-width="2"/>
+        <line x1="160" y1="0" x2="160" y2="200" stroke="#1e2836" stroke-dasharray="2 3"/>
+        <line x1="280" y1="0" x2="280" y2="200" stroke="#1e2836" stroke-dasharray="2 3"/>
+        <line x1="400" y1="0" x2="400" y2="200" stroke="#1e2836" stroke-dasharray="2 3"/>
+      </svg>
+      <figcaption>All signals settle instantly at each input change — there's no clock here, because every gate in this chapter is purely combinational (Chapter 4).</figcaption>
+    </figure>
+  </section>
+
+  <section class="chapter-section" id="common-mistakes" data-nav="Common mistakes">
+    <h2>Common Mistakes Beginners Make</h2>
+    <ul>
+      <li><b>Confusing <code>&amp;</code> and <code>&amp;&amp;</code></b> (Chapter 10) — bitwise vs logical AND give very different results on multi-bit signals.</li>
+      <li><b>Forgetting <code>endmodule</code></b> — every module must close, or later code gets swallowed into it, causing confusing errors.</li>
+      <li><b>Mismatched port widths</b> — connecting a 1-bit port to a multi-bit signal without realizing it, silently truncating or zero-extending.</li>
+      <li><b>Declaring outputs as <code>wire</code> in a behavioral (always) version</b> — remember, anything assigned inside an always block must be <code>reg</code> (Chapter 9).</li>
+      <li><b>Typos in port names during instantiation</b> — named port connections (<code>.a(a)</code>) silently fail to connect if the port name doesn't exactly match the module's declared port name.</li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="summary" data-nav="Summary & exercises">
+    <h2>Summary</h2>
+    <p>All seven basic gates can be written cleanly in one small dataflow module, sharing common inputs where sensible. A single, well-structured testbench can verify all of them simultaneously by sweeping through every input combination and comparing against hand-derived expected values — the exact workflow you'll repeat for every remaining circuit in Part 5.</p>
+    <div class="mem-trick"><b>Memory Trick:</b> "One testbench, every gate, every case — if your waveform doesn't match Chapter 2's truth table exactly, trust the truth table, not the code."</div>
+  </section>
+
+  <section class="chapter-section" id="interview-questions" data-nav="Interview questions">
+    <h2>Interview Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>Why might a designer group several small, related gates into one module?</summary><div class="answer">When they share the same inputs and serve a closely related purpose, grouping them keeps the code compact and readable, and makes verification (one shared testbench) simpler than managing many nearly-identical tiny files.</div></details></li>
+      <li><details class="qa"><summary>How would you verify that a NAND gate's Verilog implementation is correct?</summary><div class="answer">Write a testbench applying all 4 possible input combinations, and compare the simulated output at each combination against the NAND truth table (only 0 when both inputs are 1, otherwise 1).</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="viva-questions" data-nav="Viva questions">
+    <h2>Viva Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>Write the dataflow Verilog line for an XNOR gate.</summary><div class="answer">assign y = ~(a ^ b); (or assign y = a ~^ b;)</div></details></li>
+      <li><details class="qa"><summary>How many input combinations must a 2-input gate testbench cover for complete verification?</summary><div class="answer">4 (00, 01, 10, 11).</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="exercises" data-nav="Exercises">
+    <h2>Exercises</h2>
+    <p>1. Write and simulate a testbench that also verifies a NOT gate applied to <code>b</code> (in addition to <code>a</code>), extending all_gates.v. 2. Convert all_gates.v to behavioral style and confirm (via testbench) it produces byte-for-byte identical results. 3. Add a self-checking assertion to the testbench that automatically prints "PASS" or "FAIL" by comparing each output against a hand-computed expected value, instead of only printing raw values for manual inspection.</p>
+  </section>
+
+  <div class="footer-nav">
+    <a href="chapter-14.html"><span class="lbl">← BACK</span>Gate-Level vs Dataflow vs Behavioral Modeling</a>
+    <a href="chapter-16.html" class="next"><span class="lbl">NEXT</span>Half Adder & Full Adder</a>
+  </div>
+
+</article>
+</div>
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">↑</button>
+
+<script>window.CURRENT_CHAPTER_ID = "ch-15";</script>
+<script src="shared/nav.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => { const t = document.getElementById("reading-time"); const t2 = document.getElementById("reading-time-2"); if(t && t2){ const obs = new MutationObserver(()=>{ t2.textContent = t.textContent; }); obs.observe(t, {childList:true}); } });</script>
+</body>
+</html>
