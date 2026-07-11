@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 10 · always blocks, initial, operators — FPGA & Verilog Handbook</title>
+<link rel="stylesheet" href="shared/styles.css">
+</head>
+<body>
+<div class="board-grid"></div>
+
+<div class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Open chapter menu"><span></span><span></span><span></span></button>
+  <div class="topbar-title"><b>Chapter 10</b> · always blocks, initial, operators</div>
+  <div class="topbar-right"><span id="reading-time" class="dim" style="font-family:var(--font-mono);font-size:12px;"></span></div>
+</div>
+<div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="logo">◈ FPGA & VERILOG HANDBOOK</div>
+    <div class="tag">From absolute zero to a working FPGA board</div>
+  </div>
+  <div class="sidebar-search"><input type="text" id="sidebar-search-input" placeholder="Search chapters..."></div>
+  <div class="sidebar-group" id="sidebar-list"></div>
+</nav>
+
+<div class="page-wrap">
+<article class="sheet">
+
+  <div class="eyebrow">Part 3 · Verilog HDL From Zero — Chapter 10</div>
+  <h1 class="h-title">always Blocks, initial Blocks & Operators</h1>
+  <p class="h-sub"><code>assign</code> alone can't describe a flip-flop, an if/else decision, or a testbench stimulus. This chapter introduces the procedural blocks that unlock all of that — including your very first real flip-flop in code.</p>
+  <div class="meta-row"><span>📖 Beginner Level</span><span>🕐 <span id="reading-time-2">—</span></span><span>🧩 7 sections</span></div>
+
+  <section class="chapter-section" id="always-intro" data-nav="The always block">
+    <h2>The <code>always</code> Block — Verilog's "Whenever This Happens, Do This"</h2>
+    <p>An <code>always</code> block describes a chunk of behavior that re-runs every time something in its <b>sensitivity list</b> changes. The sensitivity list is written in parentheses right after <code>always</code>, and tells Verilog exactly what to "listen" for.</p>
+    <div class="codeblock">
+      <div class="code-head"><span>verilog · always block anatomy</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">always</span> @(<span class="id">sensitivity_list</span>) <span class="kw">begin</span>
+    <span class="cmt">// statements that run whenever the sensitivity list changes</span>
+<span class="kw">end</span></pre>
+    </div>
+    <p>There are two dramatically different "flavors" of <code>always</code> block, and which one you write determines whether you get plain combinational logic (Chapter 4) or real clocked memory (Chapter 5):</p>
+  </section>
+
+  <section class="chapter-section" id="combinational-always" data-nav="Combinational always @(*)">
+    <h2>Flavor 1: Combinational Logic with <code>always @(*)</code></h2>
+    <p>Writing <code>always @(*)</code> tells Verilog: "re-run this block automatically whenever <b>any</b> signal read inside it changes." The <code>*</code> is shorthand that saves you from manually listing every single input — an enormous relief once your logic has many inputs. This describes plain combinational logic — exactly like Chapter 4's circuits, just written using <code>if</code>/<code>else</code> instead of an <code>assign</code> equation.</p>
+    <div class="codeblock">
+      <div class="code-head"><span>mux2to1.v — a 2:1 multiplexer (recall Chapter 4)</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">mux2to1</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">a</span>,
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">b</span>,
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">sel</span>,
+    <span class="kw">output</span> <span class="typ">reg</span>  <span class="id">y</span>
+);
+
+    <span class="kw">always</span> @(*) <span class="kw">begin</span>
+        <span class="kw">if</span> (<span class="id">sel</span>)
+            <span class="id">y</span> = <span class="id">b</span>;   <span class="cmt">// sel=1 -> route b through</span>
+        <span class="kw">else</span>
+            <span class="id">y</span> = <span class="id">a</span>;   <span class="cmt">// sel=0 -> route a through</span>
+    <span class="kw">end</span>
+
+<span class="kw">endmodule</span></pre>
+    </div>
+    <div class="callout warn">
+      <div class="callout-title">Why is <code>y</code> declared as <code>reg</code> here, if there's no memory?</div>
+      This is exactly the trap flagged in Chapter 9: <b>any</b> signal assigned inside <i>any</i> procedural block (<code>always</code> or <code>initial</code>) must be declared <code>reg</code>, purely as a language rule — it says nothing about whether real memory hardware gets built. Because this <code>always @(*)</code> block covers every possible input combination (the if/else has no missing case) and reacts to every input change instantly, the synthesis tool builds this as <b>plain combinational logic</b>, with zero actual flip-flops — functionally identical to writing it with <code>assign</code>.
+    </div>
+  </section>
+
+  <section class="chapter-section" id="sequential-always" data-nav="Sequential always @(posedge clk)">
+    <h2>Flavor 2: Real Memory with <code>always @(posedge clk)</code></h2>
+    <p>Now for the genuinely exciting part. Writing <code>always @(posedge clk)</code> tells Verilog: "run this block <b>only</b> at the exact instant the clock signal rises from 0 to 1 (Chapter 5's rising edge) — ignore everything else, the rest of the time." This is how you describe real, clocked, edge-triggered memory — an actual flip-flop, synthesized as real hardware.</p>
+    <div class="codeblock">
+      <div class="code-head"><span>d_ff.v — your first real flip-flop in Verilog</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">d_ff</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">clk</span>,
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">d</span>,
+    <span class="kw">output</span> <span class="typ">reg</span>  <span class="id">q</span>
+);
+
+    <span class="kw">always</span> @(<span class="kw">posedge</span> <span class="id">clk</span>) <span class="kw">begin</span>
+        <span class="id">q</span> <= <span class="id">d</span>;   <span class="cmt">// on every rising clock edge, q copies d</span>
+    <span class="kw">end</span>
+
+<span class="kw">endmodule</span></pre>
+    </div>
+    <p>Compare this directly to Chapter 5's D flip-flop theory: <code>q</code> only ever updates at a rising clock edge, exactly matching the edge-triggered timing diagram you saw there. Between clock edges, <code>q</code> holds — remembers — its last value, with zero further changes, no matter what <code>d</code> does in the meantime.</p>
+    <div class="callout good">
+      <div class="callout-title">The single most important pattern in this handbook</div>
+      <code>always @(*)</code> → combinational logic (no real memory). <code>always @(posedge clk)</code> → real clocked memory (a genuine flip-flop). You will use this exact pattern, over and over, for nearly every sequential circuit in Part 5 (counters, registers, shift registers).
+    </div>
+  </section>
+
+  <section class="chapter-section" id="blocking-preview" data-nav="= vs <= (preview)">
+    <h2>A Quick Preview: <code>=</code> vs <code>&lt;=</code></h2>
+    <p>You may have noticed the mux used <code>=</code> (called <b>blocking assignment</b>) while the flip-flop used <code>&lt;=</code> (called <b>non-blocking assignment</b>). This distinction genuinely matters and causes real bugs when mixed up carelessly — so much so that it earns its own full chapter (Chapter 13). For now, follow this simple, safe rule: <b>use <code>=</code> inside combinational (<code>always @(*)</code>) blocks, and <code>&lt;=</code> inside clocked (<code>always @(posedge clk)</code>) blocks.</b> Following this one rule will keep you safe until Chapter 13 explains exactly why it matters.</p>
+  </section>
+
+  <section class="chapter-section" id="initial-block" data-nav="The initial block">
+    <h2>The <code>initial</code> Block — For Simulation, Not Real Hardware</h2>
+    <p>An <code>initial</code> block runs its statements <b>exactly once</b>, starting at the very beginning of simulation time (time 0) — and then never again. Critically: <b><code>initial</code> blocks are not synthesizable</b> — you cannot build real FPGA hardware from one. Their entire purpose is to set up test stimulus in a testbench (Chapter 12), such as feeding a sequence of input values into the circuit you're testing.</p>
+    <div class="codeblock">
+      <div class="code-head"><span>verilog · initial block example (testbench stimulus)</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">initial</span> <span class="kw">begin</span>
+    <span class="id">a</span> = 0; <span class="id">b</span> = 0;      <span class="cmt">// at time 0: set both inputs low</span>
+    #10 <span class="id">a</span> = 1;         <span class="cmt">// at time 10: raise a</span>
+    #10 <span class="id">b</span> = 1;         <span class="cmt">// at time 20: raise b</span>
+    #10 <span class="kw">$finish</span>;        <span class="cmt">// at time 30: end simulation</span>
+<span class="kw">end</span></pre>
+    </div>
+    <p>The <code>#10</code> is a <b>delay</b> — "wait 10 simulation time units before continuing." This has no physical meaning on real hardware; it only exists to control the pace of a simulation. We'll use exactly this pattern to build real testbenches in Chapter 12.</p>
+  </section>
+
+  <section class="chapter-section" id="operators" data-nav="Verilog operators">
+    <h2>The Full Verilog Operator Toolkit</h2>
+    <table>
+      <thead><tr><th>Category</th><th>Operators</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td>Arithmetic</td><td><code>+  -  *  /  %</code></td><td>add, subtract, multiply, divide, modulus</td></tr>
+        <tr><td>Relational</td><td><code>&lt;  &gt;  &lt;=  &gt;=</code></td><td>less-than, greater-than, and their "or equal" versions</td></tr>
+        <tr><td>Equality</td><td><code>==  !=</code></td><td>logical equal / not-equal (result is 1 or 0)</td></tr>
+        <tr><td>Case equality</td><td><code>===  !==</code></td><td>also compares X (unknown) and Z (high-impedance) states exactly — mostly used in testbenches</td></tr>
+        <tr><td>Logical</td><td><code>&amp;&amp;  ||  !</code></td><td>treats its operand(s) as a single true/false value — used for decisions (if conditions)</td></tr>
+        <tr><td>Bitwise</td><td><code>&amp;  |  ~  ^  ~^</code></td><td>operates independently on every individual bit of a multi-bit signal</td></tr>
+        <tr><td>Reduction (unary)</td><td><code>&amp;x  |x  ^x</code></td><td>collapses <i>all bits of a single vector x</i> down to one bit (e.g., <code>&amp;x</code> = AND of every bit in x)</td></tr>
+        <tr><td>Shift</td><td><code>&lt;&lt;  &gt;&gt;</code></td><td>shift all bits left or right</td></tr>
+        <tr><td>Concatenation</td><td><code>{ , }</code></td><td>joins multiple signals into one wider bus, e.g. <code>{a, b}</code></td></tr>
+        <tr><td>Ternary (conditional)</td><td><code>? :</code></td><td>an inline if/else: <code>condition ? value_if_true : value_if_false</code></td></tr>
+      </tbody>
+    </table>
+    <div class="callout warn">
+      <div class="callout-title">The gotcha nearly every beginner hits at least once</div>
+      <code>&amp;</code> and <code>&amp;&amp;</code> look similar but behave completely differently! <code>&amp;</code> is <b>bitwise</b> AND — it operates on every bit independently, so <code>4'b1100 &amp; 4'b1010</code> gives <code>4'b1000</code>. <code>&amp;&amp;</code> is <b>logical</b> AND — it treats each whole operand as one single true/false value (any nonzero value = true), so <code>4'b1100 &amp;&amp; 4'b1010</code> just gives <code>1</code> (true AND true). Mixing these up silently produces very different — and very confusing — results.
+    </div>
+    <p>The ternary operator is worth a special callout, because it lets you rewrite the entire mux example above as a single line:</p>
+    <div class="codeblock">
+      <div class="code-head"><span>verilog · mux rewritten with the ternary operator</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">assign</span> <span class="id">y</span> = <span class="id">sel</span> ? <span class="id">b</span> : <span class="id">a</span>;   <span class="cmt">// if sel is 1, y=b; otherwise y=a</span></pre>
+    </div>
+  </section>
+
+  <section class="chapter-section" id="summary" data-nav="Summary & key points">
+    <h2>Summary</h2>
+    <p>An <code>always @(*)</code> block, written to cover every case, synthesizes as combinational logic — no real memory, despite using <code>reg</code>. An <code>always @(posedge clk)</code> block synthesizes as real, edge-triggered memory — an actual flip-flop. Use blocking assignment (<code>=</code>) in combinational blocks and non-blocking assignment (<code>&lt;=</code>) in clocked blocks (full reasoning in Chapter 13). An <code>initial</code> block runs once at simulation start and is used purely for testbench stimulus — it is never synthesizable. Verilog's operator set closely mirrors C's, with the crucial exception that bitwise (<code>&amp;</code>) and logical (<code>&amp;&amp;</code>) operators mean genuinely different things.</p>
+    <h3>Key Points</h3>
+    <ul>
+      <li><code>always @(*)</code> → combinational logic. <code>always @(posedge clk)</code> → real clocked memory.</li>
+      <li>Use <code>=</code> in combinational always blocks, <code>&lt;=</code> in clocked always blocks.</li>
+      <li><code>initial</code> blocks run once, only in simulation — never synthesizable.</li>
+      <li>Bitwise (<code>&amp; | ~ ^</code>) operate per-bit; logical (<code>&amp;&amp; || !</code>) treat the whole operand as one true/false value.</li>
+      <li>Ternary <code>? :</code> is a compact inline if/else, usable directly inside <code>assign</code>.</li>
+    </ul>
+    <div class="mem-trick"><b>Memory Trick:</b> "Star (*) means 'watch everything, react instantly' — combinational. posedge means 'only on the tick' — real memory." For operators: "One symbol (&amp;) touches every bit. Two symbols (&amp;&amp;) only care about true or false."</div>
+  </section>
+
+  <section class="chapter-section" id="practice-questions" data-nav="Practice questions">
+    <h2>Practice Questions</h2>
+    <ol>
+      <li>Rewrite the half adder from Chapter 9 using an <code>always @(*)</code> block instead of <code>assign</code>.</li>
+      <li>Write a Verilog module for a T flip-flop (Chapter 5) using <code>always @(posedge clk)</code> — toggle <code>q</code> when <code>t</code> is 1, hold otherwise.</li>
+      <li>What is the result of <code>4'b1010 &amp; 4'b0110</code>? What about <code>4'b1010 &amp;&amp; 4'b0110</code>?</li>
+      <li>Why can't an <code>initial</code> block be used to build real FPGA hardware?</li>
+    </ol>
+  </section>
+
+  <section class="chapter-section" id="interview-questions" data-nav="Interview questions">
+    <h2>Interview Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>What determines whether an always block synthesizes to combinational logic or a flip-flop?</summary><div class="answer">The sensitivity list and coding style: `always @(*)` with every input covered and no clock reference synthesizes as combinational logic, while `always @(posedge clk)` (or another clock edge) synthesizes as real edge-triggered memory (a flip-flop or register).</div></details></li>
+      <li><details class="qa"><summary>Why is `reg` a misleading keyword name for beginners?</summary><div class="answer">Because it sounds like it always means "register" (hardware memory), but it's actually just the required Verilog keyword for any signal assigned inside a procedural block — whether real memory gets synthesized depends entirely on how that block is written, not the reg declaration itself.</div></details></li>
+      <li><details class="qa"><summary>Why are initial blocks not synthesizable?</summary><div class="answer">They describe a one-time sequence of events tied to simulation time (using constructs like time delays, #10), which has no equivalent physical meaning in real hardware — real circuits don't have a "simulation clock" ticking independently of the actual clock signal.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="viva-questions" data-nav="Viva questions">
+    <h2>Viva Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>What does the `*` mean inside `always @(*)`?</summary><div class="answer">It automatically includes every signal read inside the block in the sensitivity list, so the block re-runs whenever any of them changes.</div></details></li>
+      <li><details class="qa"><summary>Which assignment operator is used inside a clocked always block, `=` or `<=`?</summary><div class="answer">`<=` (non-blocking assignment).</div></details></li>
+      <li><details class="qa"><summary>How many times does an initial block's body execute?</summary><div class="answer">Exactly once, starting at simulation time 0.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="assignments" data-nav="Assignments & answers">
+    <h2>Assignments</h2>
+    <p>1. Convert every basic gate from Chapter 2 into a Verilog module using `always @(*)` instead of `assign`. 2. Write a JK flip-flop module (Chapter 5) using `always @(posedge clk)`, handling all four J/K combinations including toggle. 3. Write a short initial block that applies four different (a, b) input combinations, 10 time units apart, to a 2-input module of your choice.</p>
+    <details class="qa" style="margin-top:16px;">
+      <summary>Reveal Answers to Practice Questions</summary>
+      <div class="answer">
+        1) <code>always @(*) begin sum = a ^ b; carry = a & b; end</code> (with sum, carry declared as reg).<br>
+        2) <code>always @(posedge clk) begin if (t) q &lt;= ~q; else q &lt;= q; end</code><br>
+        3) Bitwise: 4'b1010 &amp; 4'b0110 = 4'b0010. Logical: both operands are nonzero (true), so 4'b1010 &amp;&amp; 4'b0110 = 1.<br>
+        4) Because it relies on simulation-only constructs (like time delays with #) that have no physical hardware equivalent — real circuits respond to actual electrical clock edges, not an abstract simulation timer.
+      </div>
+    </details>
+  </section>
+
+  <div class="footer-nav">
+    <a href="chapter-09.html"><span class="lbl">← BACK</span>Verilog Basics: module, ports, wire, reg, assign</a>
+    <a href="chapter-11.html" class="next"><span class="lbl">NEXT</span>if/else, case, loops, generate, parameters</a>
+  </div>
+
+</article>
+</div>
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">↑</button>
+
+<script>window.CURRENT_CHAPTER_ID = "ch-10";</script>
+<script src="shared/nav.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => { const t = document.getElementById("reading-time"); const t2 = document.getElementById("reading-time-2"); if(t && t2){ const obs = new MutationObserver(()=>{ t2.textContent = t.textContent; }); obs.observe(t, {childList:true}); } });</script>
+</body>
+</html>
