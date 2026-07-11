@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 16 · Half Adder & Full Adder — FPGA & Verilog Handbook</title>
+<link rel="stylesheet" href="shared/styles.css">
+</head>
+<body>
+<div class="board-grid"></div>
+
+<div class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Open chapter menu"><span></span><span></span><span></span></button>
+  <div class="topbar-title"><b>Chapter 16</b> · Half Adder & Full Adder</div>
+  <div class="topbar-right"><span id="reading-time" class="dim" style="font-family:var(--font-mono);font-size:12px;"></span></div>
+</div>
+<div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="logo">◈ FPGA & VERILOG HANDBOOK</div>
+    <div class="tag">From absolute zero to a working FPGA board</div>
+  </div>
+  <div class="sidebar-search"><input type="text" id="sidebar-search-input" placeholder="Search chapters..."></div>
+  <div class="sidebar-group" id="sidebar-list"></div>
+</nav>
+
+<div class="page-wrap">
+<article class="sheet">
+
+  <div class="eyebrow">Part 5 · Verilog Programs — Chapter 16</div>
+  <h1 class="h-title">Half Adder & Full Adder</h1>
+  <p class="h-sub">Full theory in Chapter 4. Here: complete dataflow, behavioral, and structural code for both adders, full testbenches, and — as a capstone — verifying Chapter 11's parameterized ripple-carry adder with real numeric addition, overflow included.</p>
+  <div class="meta-row"><span>📖 Beginner Level</span><span>🕐 <span id="reading-time-2">—</span></span><span>🧩 6 sections</span></div>
+
+  <section class="chapter-section" id="recap" data-nav="Quick recap">
+    <h2>Quick Recap (Full Theory in Chapter 4)</h2>
+    <table>
+      <thead><tr><th>Circuit</th><th>Equations</th></tr></thead>
+      <tbody>
+        <tr><td>Half Adder</td><td>Sum = A⊕B, &nbsp; Carry = A·B</td></tr>
+        <tr><td>Full Adder</td><td>Sum = A⊕B⊕Cin, &nbsp; Cout = AB + BCin + ACin</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="chapter-section" id="half-adder-code" data-nav="Half Adder: code & testbench">
+    <h2>Half Adder — Code & Testbench</h2>
+    <p>The dataflow and behavioral versions were already fully written in Chapters 9 and 14 — here is the complete testbench that verifies them:</p>
+    <div class="codeblock">
+      <div class="code-head"><span>half_adder_tb.v (full version)</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">half_adder_tb</span>;
+    <span class="typ">reg</span>  <span class="id">a</span>, <span class="id">b</span>;
+    <span class="typ">wire</span> <span class="id">sum</span>, <span class="id">carry</span>;
+
+    <span class="id">half_adder</span> <span class="id">uut</span> (.<span class="id">a</span>(<span class="id">a</span>), .<span class="id">b</span>(<span class="id">b</span>), .<span class="id">sum</span>(<span class="id">sum</span>), .<span class="id">carry</span>(<span class="id">carry</span>));
+
+    <span class="kw">initial</span> <span class="kw">begin</span>
+        <span class="kw">$dumpfile</span>(<span class="str">"half_adder.vcd"</span>); <span class="kw">$dumpvars</span>(0, <span class="id">half_adder_tb</span>);
+        <span class="id">a</span>=0; <span class="id">b</span>=0; #10;
+        <span class="id">a</span>=0; <span class="id">b</span>=1; #10;
+        <span class="id">a</span>=1; <span class="id">b</span>=0; #10;
+        <span class="id">a</span>=1; <span class="id">b</span>=1; #10;
+        <span class="kw">$finish</span>;
+    <span class="kw">end</span>
+
+    <span class="kw">initial</span> <span class="kw">$monitor</span>(<span class="str">"t=%0t a=%b b=%b sum=%b carry=%b"</span>, <span class="kw">$time</span>, <span class="id">a</span>, <span class="id">b</span>, <span class="id">sum</span>, <span class="id">carry</span>);
+<span class="kw">endmodule</span></pre>
+    </div>
+    <table>
+      <thead><tr><th>t</th><th>a</th><th>b</th><th>sum</th><th>carry</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+        <tr><td>10</td><td>0</td><td>1</td><td>1</td><td>0</td></tr>
+        <tr><td>20</td><td>1</td><td>0</td><td>1</td><td>0</td></tr>
+        <tr><td>30</td><td>1</td><td>1</td><td>0</td><td>1</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="chapter-section" id="full-adder-code" data-nav="Full Adder: three styles">
+    <h2>Full Adder — All Three Styles</h2>
+    <p>Chapter 11 already gave you the dataflow version (used inside the generate-based ripple adder). Here it is again alongside a structural version built from two half adders + an OR gate, exactly matching Chapter 4's diagram:</p>
+    <div class="codeblock">
+      <div class="code-head"><span>full_adder.v — dataflow (from Chapter 11)</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">full_adder</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">a</span>, <span class="id">b</span>, <span class="id">cin</span>,
+    <span class="kw">output</span> <span class="typ">wire</span> <span class="id">sum</span>, <span class="id">cout</span>
+);
+    <span class="kw">assign</span> <span class="id">sum</span>  = <span class="id">a</span> ^ <span class="id">b</span> ^ <span class="id">cin</span>;
+    <span class="kw">assign</span> <span class="id">cout</span> = (<span class="id">a</span> & <span class="id">b</span>) | (<span class="id">b</span> & <span class="id">cin</span>) | (<span class="id">a</span> & <span class="id">cin</span>);
+<span class="kw">endmodule</span></pre>
+    </div>
+    <div class="codeblock">
+      <div class="code-head"><span>full_adder_structural.v — built from 2 half adders (matches Chapter 4's diagram)</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">full_adder_structural</span> (
+    <span class="kw">input</span>  <span class="typ">wire</span> <span class="id">a</span>, <span class="id">b</span>, <span class="id">cin</span>,
+    <span class="kw">output</span> <span class="typ">wire</span> <span class="id">sum</span>, <span class="id">cout</span>
+);
+    <span class="typ">wire</span> <span class="id">s1</span>, <span class="id">c1</span>, <span class="id">c2</span>;
+
+    <span class="id">half_adder</span> <span class="id">ha1</span> (.<span class="id">a</span>(<span class="id">a</span>),  .<span class="id">b</span>(<span class="id">b</span>),   .<span class="id">sum</span>(<span class="id">s1</span>),  .<span class="id">carry</span>(<span class="id">c1</span>));
+    <span class="id">half_adder</span> <span class="id">ha2</span> (.<span class="id">a</span>(<span class="id">s1</span>), .<span class="id">b</span>(<span class="id">cin</span>), .<span class="id">sum</span>(<span class="id">sum</span>), .<span class="id">carry</span>(<span class="id">c2</span>));
+    <span class="id">or</span> (<span class="id">cout</span>, <span class="id">c1</span>, <span class="id">c2</span>);
+
+<span class="kw">endmodule</span></pre>
+    </div>
+    <div class="codeblock">
+      <div class="code-head"><span>full_adder_tb.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">full_adder_tb</span>;
+    <span class="typ">reg</span>  <span class="id">a</span>, <span class="id">b</span>, <span class="id">cin</span>;
+    <span class="typ">wire</span> <span class="id">sum</span>, <span class="id">cout</span>;
+
+    <span class="id">full_adder</span> <span class="id">uut</span> (.<span class="id">a</span>(<span class="id">a</span>), .<span class="id">b</span>(<span class="id">b</span>), .<span class="id">cin</span>(<span class="id">cin</span>), .<span class="id">sum</span>(<span class="id">sum</span>), .<span class="id">cout</span>(<span class="id">cout</span>));
+
+    <span class="typ">integer</span> <span class="id">i</span>;
+    <span class="kw">initial</span> <span class="kw">begin</span>
+        <span class="kw">$dumpfile</span>(<span class="str">"full_adder.vcd"</span>); <span class="kw">$dumpvars</span>(0, <span class="id">full_adder_tb</span>);
+        <span class="kw">for</span> (<span class="id">i</span> = 0; <span class="id">i</span> < 8; <span class="id">i</span> = <span class="id">i</span> + 1) <span class="kw">begin</span>
+            {<span class="id">a</span>, <span class="id">b</span>, <span class="id">cin</span>} = <span class="id">i</span>[2:0];   <span class="cmt">// concatenation: sweep all 8 combos automatically</span>
+            #10;
+        <span class="kw">end</span>
+        <span class="kw">$finish</span>;
+    <span class="kw">end</span>
+
+    <span class="kw">initial</span> <span class="kw">$monitor</span>(<span class="str">"t=%0t a=%b b=%b cin=%b -> sum=%b cout=%b"</span>, <span class="kw">$time</span>, <span class="id">a</span>, <span class="id">b</span>, <span class="id">cin</span>, <span class="id">sum</span>, <span class="id">cout</span>);
+<span class="kw">endmodule</span></pre>
+    </div>
+    <div class="callout good">
+      <div class="callout-title">A neater trick worth noticing</div>
+      <code>{a, b, cin} = i[2:0];</code> uses the <b>concatenation operator</b> (Chapter 10) to pack all three inputs from a single loop counter <code>i</code> — automatically sweeping through all 8 combinations (000 through 111) without writing out 8 lines by hand. This scales far better than Chapter 15's manual approach as input counts grow.
+    </div>
+    <p>Expected output must match Chapter 4's 8-row full adder truth table exactly, row for row.</p>
+  </section>
+
+  <section class="chapter-section" id="ripple-adder-verify" data-nav="Verifying the ripple-carry adder">
+    <h2>Capstone: Verifying Chapter 11's Ripple-Carry Adder With Real Numbers</h2>
+    <p>Now let's actually test the parameterized <code>ripple_adder</code> from Chapter 11 by adding real 4-bit numbers — including a case that overflows, to make sure <code>Cout</code> behaves correctly.</p>
+    <div class="codeblock">
+      <div class="code-head"><span>ripple_adder_tb.v</span><button class="copy-btn">Copy</button></div>
+      <pre><span class="kw">module</span> <span class="id">ripple_adder_tb</span>;
+    <span class="typ">reg</span> [3:0] <span class="id">A</span>, <span class="id">B</span>;
+    <span class="typ">reg</span>       <span class="id">Cin</span>;
+    <span class="typ">wire</span> [3:0] <span class="id">Sum</span>;
+    <span class="typ">wire</span>       <span class="id">Cout</span>;
+
+    <span class="id">ripple_adder</span> #(.<span class="id">N</span>(4)) <span class="id">uut</span> (
+        .<span class="id">A</span>(<span class="id">A</span>), .<span class="id">B</span>(<span class="id">B</span>), .<span class="id">Cin</span>(<span class="id">Cin</span>), .<span class="id">Sum</span>(<span class="id">Sum</span>), .<span class="id">Cout</span>(<span class="id">Cout</span>)
+    );
+
+    <span class="kw">initial</span> <span class="kw">begin</span>
+        <span class="id">Cin</span> = 0;
+
+        <span class="id">A</span> = 4'<span class="typ">d</span><span class="num">5</span>;  <span class="id">B</span> = 4'<span class="typ">d</span><span class="num">3</span>;  #10;   <span class="cmt">// 5 + 3 = 8, no overflow</span>
+        <span class="kw">$display</span>(<span class="str">"5 + 3 = %0d (Cout=%b)"</span>, <span class="id">Sum</span>, <span class="id">Cout</span>);
+
+        <span class="id">A</span> = 4'<span class="typ">d</span><span class="num">15</span>; <span class="id">B</span> = 4'<span class="typ">d</span><span class="num">1</span>;  #10;   <span class="cmt">// 15 + 1 = 16 -> overflows a 4-bit result!</span>
+        <span class="kw">$display</span>(<span class="str">"15 + 1 = %0d (Cout=%b)"</span>, <span class="id">Sum</span>, <span class="id">Cout</span>);
+
+        <span class="kw">$finish</span>;
+    <span class="kw">end</span>
+<span class="kw">endmodule</span></pre>
+    </div>
+    <table>
+      <thead><tr><th>A</th><th>B</th><th>Cin</th><th>Sum (4-bit)</th><th>Cout</th><th>True total</th></tr></thead>
+      <tbody>
+        <tr><td>5</td><td>3</td><td>0</td><td>8</td><td>0</td><td>8 (fits)</td></tr>
+        <tr><td>15</td><td>1</td><td>0</td><td>0</td><td>1</td><td>16 → wraps to 0, Cout carries the overflow</td></tr>
+      </tbody>
+    </table>
+    <div class="callout warn">
+      <div class="callout-title">Why the second result "looks wrong" at first glance</div>
+      15 + 1 truly equals 16 — but a 4-bit <code>Sum</code> bus can only represent 0–15. The 5th bit of the true answer (the "16") has nowhere to go inside a 4-bit bus, so it appears on <code>Cout</code> instead. This is exactly why real multi-bit adders in processors chain <code>Cout</code> into a wider result or into the next adder stage — losing track of this bit is a classic source of silent arithmetic bugs.
+    </div>
+  </section>
+
+  <section class="chapter-section" id="common-mistakes" data-nav="Common mistakes">
+    <h2>Common Mistakes</h2>
+    <ul>
+      <li>Forgetting that <code>Cout</code> must be captured somewhere — silently ignoring it causes incorrect results for any addition that overflows the bus width.</li>
+      <li>Connecting the wrong <code>Cin</code> at the very first adder stage — it must be tied to 0 (or an actual incoming carry) rather than left floating.</li>
+      <li>Using decimal literals without specifying width/base (e.g., writing <code>5</code> instead of <code>4'd5</code>) — usually fine for small values, but can cause subtle width-mismatch bugs in larger expressions.</li>
+      <li>Forgetting to declare loop variables (<code>integer i;</code>) outside the initial block in some simulators.</li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="summary" data-nav="Summary & exercises">
+    <h2>Summary</h2>
+    <p>The half adder and full adder from Chapter 4 translate directly into dataflow, behavioral, and structural Verilog, and every version can (and should) be verified with a testbench sweeping all input combinations. Testing Chapter 11's generate-based ripple-carry adder with real numbers — including a deliberately overflowing case — demonstrates exactly why <code>Cout</code> must never be ignored in real multi-bit arithmetic.</p>
+  </section>
+
+  <section class="chapter-section" id="interview-questions" data-nav="Interview questions">
+    <h2>Interview Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>How would you verify a full adder using a testbench with minimal code?</summary><div class="answer">Use a for loop with the concatenation operator to sweep a single loop counter across all 8 possible 3-bit input combinations ({a,b,cin} = i[2:0]), rather than writing out each combination manually.</div></details></li>
+      <li><details class="qa"><summary>What happens if Cout is ignored in a multi-bit adder design?</summary><div class="answer">Any addition whose true result exceeds the bus width will silently wrap around (lose its most significant bit), producing an incorrect result with no indication of the error unless Cout is checked.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="viva-questions" data-nav="Viva questions">
+    <h2>Viva Questions</h2>
+    <ul class="qa-list">
+      <li><details class="qa"><summary>What does {a, b, cin} = i[2:0] do in the full adder testbench?</summary><div class="answer">It uses concatenation to pack the 3 lowest bits of the loop counter i directly into a, b, and cin, automatically sweeping through all 8 input combinations.</div></details></li>
+      <li><details class="qa"><summary>For a 4-bit ripple adder, what is the maximum representable Sum value before overflow?</summary><div class="answer">15 (4'b1111) — anything beyond that sets Cout to indicate overflow.</div></details></li>
+    </ul>
+  </section>
+
+  <section class="chapter-section" id="exercises" data-nav="Exercises">
+    <h2>Exercises</h2>
+    <p>1. Extend the ripple_adder_tb to test at least 5 different (A, B) pairs, including one more overflow case. 2. Write a self-checking testbench for the full adder that automatically compares simulated sum/cout against values computed directly in the testbench using Verilog's own + operator, printing PASS/FAIL. 3. Build and simulate an 8-bit version of ripple_adder, and verify at least one addition that requires carry propagation across all 8 stages (e.g., 255 + 1).</p>
+  </section>
+
+  <div class="footer-nav">
+    <a href="chapter-15.html"><span class="lbl">← BACK</span>Basic Gates: AND/OR/NOT/NAND/NOR/XOR/XNOR</a>
+    <a href="chapter-17.html" class="next"><span class="lbl">NEXT</span>Multiplexer & Demultiplexer</a>
+  </div>
+
+</article>
+</div>
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">↑</button>
+
+<script>window.CURRENT_CHAPTER_ID = "ch-16";</script>
+<script src="shared/nav.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => { const t = document.getElementById("reading-time"); const t2 = document.getElementById("reading-time-2"); if(t && t2){ const obs = new MutationObserver(()=>{ t2.textContent = t.textContent; }); obs.observe(t, {childList:true}); } });</script>
+</body>
+</html>
